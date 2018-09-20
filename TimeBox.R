@@ -13,6 +13,7 @@ cat("===================================\n")
      #library(doMC)
      #registerDoMC(cores=3)
 
+     library(stringr)
 
      # Workstation farm parallelisation
      # --------------------------------
@@ -37,34 +38,34 @@ cat("===================================\n")
 
      # helpers
      GetCSV <- function (prompt="Enter filename: ") {
-        # Prompts for a CSV file then reads it into a data frame
+	# Prompts for a CSV file then reads it into a data frame
 	# would be good to be able to pass in the directory to read from
 	cat("\n\nAvailable Files\n---------------------------------------\n")
-        print(list.files(pattern="*.csv"))
-        if (interactive()) {
-          # Interactive R
-          readline(prompt=prompt) -> filename
-        } else {
-          # Rscript
-          cat(prompt)
-          readLines("stdin", n=1) -> filename
-        }
+	print(list.files(pattern="*.csv"))
+	if (interactive()) {
+	  # Interactive R
+	  readline(prompt=prompt) -> filename
+	} else {
+	  # Rscript
+	  cat(prompt)
+	  readLines("stdin", n=1) -> filename
+	}
    
-        # load the CSV file from the local directory
-        read.csv(filename, header=TRUE, stringsAsFactors=FALSE)
+	# load the CSV file from the local directory
+	read.csv(filename, header=TRUE, stringsAsFactors=FALSE)
      }
 
      GetInput <- function (prompt="Come come, elucidate your thoughts: ") 
      {
-        if (interactive()) {
-          # Interactive R
-          readline(prompt=prompt) -> x
-        } else {
-          # Rscript
-          cat(prompt)
-          readLines("stdin", n=1) -> x
-        }
-        x
+	if (interactive()) {
+	  # Interactive R
+	  readline(prompt=prompt) -> x
+	} else {
+	  # Rscript
+	  cat(prompt)
+	  readLines("stdin", n=1) -> x
+	}
+	x
      }
 
      TB <- "TimeBox.R"
@@ -73,40 +74,203 @@ cat("===================================\n")
      {
 	     source(TB)
      }
+     
+     str_field <- function (string, width=1, side="right") {
+	if(nchar(string) < width) 
+	   nchar(string) -> l
+	else
+	   width -> l
+	
+	return(str_pad(substr(string,1,l), width=width, side=side))
+     }
+     
+     LoadConfig <- function ()
+     {
+	# First check that the file exists and produce an error otherwise
+	read.csv("Config.csv", header=TRUE, stringsAsFactors=TRUE, na.strings="") 
+     }
+
+     SaveConfig <- function ()
+     {
+	# First check that the file exists and produce an error otherwise
+	write.csv(Config, file="Config.csv", row.names=FALSE) 
+     }
 
      SaveTasks <- function (Selection="*")
      {
-        write.csv(Tasks[grep(Selection,Tasks$Name),], file="Task List.csv", row.names=FALSE)
-        #write.csv(Transactions[grep(Selection,Transactions$DateTime),], file=paste("ATM",Selection,"Transactions.csv",sep="-"), row.names=FALSE)
+	write.csv(Tasks[grep(Selection,Tasks$Task),], file="Task List.csv", row.names=FALSE)
      }
 
      LoadTasks <- function ()
      {
 	# First check that the file exists and produce an error otherwise
-        read.csv("Task List.csv", header=TRUE, stringsAsFactors=FALSE) 
-        #write.csv(Transactions[grep(Selection,Transactions$DateTime),], file=paste("ATM",Selection,"Transactions.csv",sep="-"), row.names=FALSE)
+	read.csv("Task List.csv", header=TRUE, stringsAsFactors=FALSE) -> T 
+	
+	for (col in 1:ncol(T))
+	   "" -> T[is.na(T[,col]),col]
+	   
+	return(T)
      }
+     
+     PrintTasks <- function (Project="*", Group="*", Status=c("InProgress","Next","Completed","Defect"), show="Summary", paginate=TRUE) 
+     {
+	# Put a box around this
+	# Responsive configuration based on page width
+	
+	# Just make it work!!!
+	# cat(sprintf("Project %s, Group %s, Status (%s), show=%s, Paginate=%s\n", toString(Project), toString(Group), toString(Status), toString(show), toString(paginate)))
+	# ID,Project,Group,Task,Status
+	# Implementation,Activity,Requires,
+	# Priority,Urgency,Importance,
+	# Effort,Who,DateAssigned,DateStarted,DateCompleted,DateDue
+	
+	if (paginate) 
+	    sink(file=".Tasks.PrintTasks", type="output")
+
+	sprintf("Project/Group: %s/%s", Project, Group) -> Selection
+	# cat(sprintf("1.Listing tasks for %s", Selection))
+	
+	# Filter out the entries we want
+	#   by Project and group
+	T1 <- Tasks[grep(Project, Tasks$Project),]
+	T1 <- T1[grep(Group, sprintf("%s-%s-%s", T1$Group1, T1$Group2, T1$Group3)),]
+	  
+	#   by Status
+	data.frame() -> T
+	for (s in Status)
+	    rbind(T, T1[grep(s, T1$Status),]) -> T
+
+	if (nrow(T) > 0) 
+	    for (row in 1:nrow(T)) {
+		# cat(sprintf("%s-%s-%s-%s\n", Project, row, T$Project[row], nrow(T)))
+
+	    	if (Project != T$Project[row]) {
+	    	    Project = T$Project[row]
+	    	    cat(sprintf("Project: %s\n", T$Project[row]))
+		    # print(summary(as.factor(T$Group1)))
+		    # cat("\n")
+	    	}
+
+	    	if (Group != sprintf("%s-%s-%s", T$Group1[row], T$Group2[row], T$Group3[row])) {
+		    Group = sprintf("%s-%s-%s", T$Group1[row], T$Group2[row], T$Group3[row])
+	    	    cat(sprintf("  %s-%s-%s\n", T$Group1[row], T$Group2[row], T$Group3[row]))
+	    	}
+
+	    	if (show == "Full") {
+		    cat(sprintf("    %s %s\n", str_pad(paste("[",T$ID[row],"]", sep=""),7), T$Task[row]))
+		    cat(sprintf("            \"%s\"\n", T$Description[row]))
+		    cat(sprintf("            Status [%s]", T$Status[row]))
+		    cat(sprintf(", Priority [%s/%s]", T$Urgency[row], T$Importance[row]))
+		    cat(sprintf(", Assigned to: %s. Due: %s\n", T$Who[row], T$DateDue[row]))
+		    # cat(sprintf("    [%s] %s - %s\n", T$ID[row], T$Task[row], T$Description[row]))
+		    # cat(sprintf("    \tStatus [%s]", T$Status[row]))
+		    # cat(sprintf(", Priority [%s/%s]", T$Urgency[row], T$Importance[row]))
+		    # cat(sprintf(", Assigned to: %s. Due: %s\n", T$Who[row], T$DateDue[row]))
+	    	} else {
+		    cat(sprintf("    %s %s %s %s\n", 
+		    str_pad(paste("[",T$ID[row],"]", sep=""),7), 
+		    str_field(T$Task[row],40, side="right"), 
+		    paste("[",str_field(T$Status[row], width=8, side="both"),"]", sep=""), 
+		    paste("\"",str_field(T$Description[row],60, side="right"),"\"", sep="")))
+	    	}
+	    }
+
+	if (paginate) {
+	   sink()
+	   #file.show(file=".Tasks", delete.file=TRUE, title=sprintf("Listing tasks for %s", Selection))
+	   file.show(file=".Tasks.PrintTasks", title=sprintf("Listing tasks for %s", Selection))
+	}
+     }
+
+     SumariseTasks <- function (Project="*", Group="*")
+     {
+	# ID,Project,Group,Task,
+	# Implementation,Activity,Requires,
+	# Priority,Urgency,Importance,
+	# Effort,Who,DateAssigned,DateStarted,DateCompleted,DateDue
+	
+	T <- Tasks[grep(Project, Tasks$Project),]
+	T <- T[grep(Group, sprintf("%s-%s-%s", T$Group1, T$Group2, T$Group3)),]
+		  
+	for (row in 1:nrow(T)) {
+	    if (Project != T$Project[row]) {
+	    	Project = T$Project[row]
+	    	cat(sprintf("\n===============\n"))
+	    	cat(sprintf("Project: %s\n", T$Project[row]))
+		P <- T[grep(Project, T$Project), ]
+
+		# Ideally needs a matrix - count of rows by Group and by status
+	    	cat("---------------\n")
+		cat("By group:\n")
+	    	print(summary(as.factor(P$Group1)))
+
+	    	cat("---------------\n")
+	    	cat("By status:\n")
+	    	print(summary(as.factor(P$Status)))	
+	    }
+	}
+	
+	cat("\n===============\n")
+     }
+     
+     ToDo <- function() {
+	cat("Backlog\n====================\n")
+	PrintTasks(Status="Next", paginate=FALSE)
+	PrintTasks(Status="Defect", paginate=FALSE)
+	cat("\nToDo\n====================\n")
+	PrintTasks(Status="InProgress", show="Full", paginate=FALSE)
+	cat("\nCompleted\n====================\n")
+	PrintTasks(Status="Complete", paginate=FALSE)
+     }
+
 
 # ===================================================================
 # 1. Prepare Problem
-     cat("\n\nSetup\n=======================================\n")
+#     cat("\n\nSetup\n=======================================\n")
 # a) Load libraries
 
      #library(caret)
      #library(corrplot)
      #library(psych)
 
+     LoadConfig() -> Config
+
 # b) Load dataset
 
      # Get the task list
-     read.csv("Task List.csv", header=TRUE, stringsAsFactors=FALSE) -> Tasks
+     LoadTasks() -> Tasks
+     for (row in 1:nrow(Tasks))
+     row -> Tasks$ID[row]
+     # read.csv("ToDo.csv", header=TRUE, stringsAsFactors=FALSE) -> ToDo
 
      # ===========================================================================================
      # Data preparation - depends on the source of the data
      # ===========================================================================================
+     
+     # Testing 123
+     cat("---------------------------------------------\nSumariseTasks()\n\n")
+     SumariseTasks()
+
+     cat("---------------------------------------------\nPrintTasks(show=Full)\n\n")
+     GetInput(prompt="Next") -> BitBucket
+     PrintTasks(show="Full")
+
+     cat("---------------------------------------------\nPrintTasks(Group=R functions)\n\n")
+     GetInput(prompt="Next") -> BitBucket
+     PrintTasks(Group="R functions", Status="*")
+
+     cat("---------------------------------------------\nPrintTasks(Project=unknown)\n\n")
+     GetInput(prompt="Next") -> BitBucket
+     PrintTasks(Project="unknown", Status="*")
+
+     cat("---------------------------------------------\nToDo list\n\n")
+     GetInput(prompt="Next") -> BitBucket
+     ToDo()
 
      # Time to go home
-     SaveTasks
+     SaveTasks()
+
+     SaveConfig()
 
 #
 ## ===================================================================

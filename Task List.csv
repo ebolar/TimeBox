@@ -1,27 +1,30 @@
-ID,Project,Group,Task,Implementation,Activity,Requires,Priority,Urgency,Importance,Effort,Who,DateAssigned,DateStarted,DateCompleted,DateDue
-derive,Task List,Interfaces,Load and save,CSV,,,derive,,,,,,,,
-,Task List,Interfaces,Load and save,Jira,,,,,,,,,,,
-,Task List,Interfaces,Load and save,Database,,,,,,,,,,,
-,Task List,Interfaces,Add task,R function,,,,,,,,,,,
-,Task List,Interfaces,Add task,Outlook email,,,,,,,,,,,
-,Task List,Interfaces,Add task,Outlook task,,,,,,,,,,,
-,Task List,Interfaces,Add task,SMTP/iMAP,,,,,,,,,,,
-,Task List,Interfaces,Add task,Rshiny,,,,,,,,,,,
-,Task List,Interfaces,Add task,Confluence,,,,,,,,,,,
-,Task List,Basic functions,New task,R functions,,,,,,,,,,,
-,Task List,Basic functions,Add task,R functions,,,,,,,,,,,
-,Task List,Basic functions,Group task,R functions,,,,,,,,,,,
-,Task List,Basic functions,Prioritise task,R functions,,,,,,,,,,,
-,Task List,Basic functions,Schedulue task,R functions,,,,,,,,,,,
-,Task List,Basic functions,Update task,R functions,,,,,,,,,,,
-,Task List,Basic functions,Complete task,R functions,,,,,,,,,,,
-,Task List,Basic functions,Archive tasks,R functions,,,,,,,,,,,
-,Task List,UI,Basic functions,R functions,,,,,,,,,,,
-,Task List,UI,Basic functions,R Script,,,,,,,,,,,
-,Task List,UI,Basic functions,R Shiny,,,,,,,,,,,
-,Task List,UI,Basic functions,Jira,,,,,,,,,,,
-,Task List,UI,Basic functions,Outlook,,,,,,,,,,,
-,Task List,UI,Basic functions,Excel,,,,,,,,,,,
-,Task List,Reporting,Project Gant and milestones,,,,,,,,,,,,
-,Task List,Reporting,Generate timesheet,,,,,,,,,,,,
-,Task List,Reporting,Generate weekly report,,,,,,,,,,,,
+"ID","Project","Group1","Group2","Group3","Task","Description","Priority","Urgency","Importance","Effort","Status","Who","DateAssigned","DateStarted","DateCompleted","DateDue"
+"1","Task List","Interfaces","","CSV","Load and save","Load and save from ‘Task List.csv’.  Filter by Project","","","","","Completed","","","","",""
+"2","Task List","Interfaces","","CSV","Load and save","Load and save from any csv","","","","","Idea","Me","","","",""
+"3","Task List","Interfaces","","Jira","Load and save","","","","","","Idea","","","","",""
+"4","Task List","Interfaces","","Database","Load and save","","","","","","Idea","","","","",""
+"5","Task List","Interfaces","","R function","Add task","","","","","","Idea","","","","",""
+"6","Task List","Interfaces","","Outlook email","Add task","","","","","","Idea","","","","",""
+"7","Task List","Interfaces","","Outlook task","Add task","","","","","","Idea","","","","",""
+"8","Task List","Interfaces","","SMTP/iMAP","Add task","","","","","","Idea","","","","",""
+"9","Task List","Interfaces","","Rshiny","Add task","","","","","","Idea","","","","",""
+"10","Task List","Interfaces","","Confluence","Add task","","","","","","Idea","","","","",""
+"11","Task List","Basic functions","","R functions","New task","","","","","","Backlog","","","","",""
+"12","Task List","Basic functions","","R functions","Print tasks","Print out a list of all tasks.  Filter by Project/Group.","","","","","Completed","","","","",""
+"13","Task List","Basic functions","","R functions","Print tasks","Print a summary count of tasks.  Breakdown by group and by status.  Filter by Project/Group.","","","","","InProgress","Me","","","",""
+"14","Task List","Basic functions","","R functions","Label tasks","","","","","","Completed","","","","",""
+"15","Task List","Basic functions","","R functions","Group task","","","","","","Backlog","","","","",""
+"16","Task List","Basic functions","","R functions","Prioritise task","","","","","","Next","Me","","","",""
+"17","Task List","Basic functions","","R functions","Schedule task","","","","","","Backlog","","","","",""
+"18","Task List","Basic functions","","R functions","Update task","","","","","","Next","","","","",""
+"19","Task List","Basic functions","","R functions","Complete task","","","","","","Next","","","","",""
+"20","Task List","Basic functions","","R functions","Archive tasks","","","","","","Idea","","","","",""
+"21","Task List","UI","","R functions","Basic functions","","","","","","Idea","","","","",""
+"22","Task List","UI","","R Script","Basic functions","","","","","","Idea","","","","",""
+"23","Task List","UI","","R Shiny","Basic functions","","","","","","Idea","","","","",""
+"24","Task List","UI","","Jira","Basic functions","","","","","","Idea","","","","",""
+"25","Task List","UI","","Outlook","Basic functions","","","","","","Idea","","","","",""
+"26","Task List","UI","","Excel","Basic functions","","","","","","Backlog","","","","",""
+"27","Task List","Reporting","","","Project Gant and milestones","","","","","","Idea","","","","",""
+"28","Task List","Reporting","","","Generate timesheet","","","","","","Idea","","","","",""
+"29","Task List","Reporting","","","Generate weekly report","","","","","","Idea","","","","",""
