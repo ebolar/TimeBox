@@ -36,6 +36,8 @@ cat("===================================\n")
      options(width=as.integer(cols))
      rm(cols)
 
+     commandArgs(TRUE) -> argv
+     
      # helpers
      GetCSV <- function (prompt="Enter filename: ") {
 	# Prompts for a CSV file then reads it into a data frame
@@ -111,13 +113,77 @@ cat("===================================\n")
 	   
 	return(T)
      }
+
+     IndexTasks <- function (T) 
+     {
+	class(T) -> C
+	if (C == "data.frame") 
+	{
+	   for (row in 1:nrow(T))
+	     row -> T$ID[row]
+	} else if (C == "character")
+	{
+	   NR=NROW(T)
+	   for (row in 1:NR)
+	     row -> T[row]
+	} else print("Error: Unknown Task type")
+	return (T)
+     }
      
+     CaptureTask <- function(Project="")
+     {
+	GetInput(prompt=sprintf("Project [%s] : ", Project)) -> Project
+        # Select & Validate the project
+
+	# Variable names for the following groups based on the project type
+	GetInput(prompt="Group1      : ") -> Group1
+	GetInput(prompt="Group2      : ") -> Group2
+	GetInput(prompt="Group3      : ") -> Group3
+	
+	# What needs to be done
+	GetInput(prompt="Task        : ") -> Task
+	GetInput(prompt="Description : ") -> Description
+
+	# Priority could be derived.  Some people may want to enter it.
+	GetInput(prompt="Urgency     : ") -> Urgency
+	GetInput(prompt="Importance  : ") -> Importance
+	GetInput(prompt="Effort      : ") -> Effort
+	     
+	# Can we derive the status?  How do we ensure that only the valid status types are entered.
+	GetInput(prompt="Status      : ") -> Status
+	GetInput(prompt="Who         : ") -> Who
+	GetInput(prompt="Due Date    : ") -> DateDue
+
+	return(
+	   data.frame(
+	      ID="",
+	      Project=Project,
+	      Group1=Group1,
+	      Group2=Group2,
+	      Group3=Group3,
+	      Task=Task,
+	      Description=Description,
+	      Priority="",
+	      Urgency=Urgency,
+	      Importance=Importance,
+	      Effort=Effort,
+	      Status=Status,
+	      Who=Who,
+	      DateAssigned="",
+	      DateStarted="",
+	      DateCompleted="",
+	      DateDue=DateDue,
+	      stringsAsFactors=FALSE
+	      )
+	  )
+     }
+
      PrintTasks <- function (Project="*", Group="*", Status=c("InProgress","Next","Completed","Defect"), show="Summary", paginate=TRUE) 
      {
 	# Put a box around this
 	# Responsive configuration based on page width
-	
 	# Just make it work!!!
+	
 	# cat(sprintf("Project %s, Group %s, Status (%s), show=%s, Paginate=%s\n", toString(Project), toString(Group), toString(Status), toString(show), toString(paginate)))
 	# ID,Project,Group,Task,Status
 	# Implementation,Activity,Requires,
@@ -223,6 +289,20 @@ cat("===================================\n")
 	PrintTasks(Status="Complete", paginate=FALSE)
      }
 
+     Usage <- function() 
+     {
+	cat("Time Box\n")
+        cat("---------------------------------------------\n\n")
+	cat(" Time management in R\n")
+	cat("\n TimeBox.R <function>\n")
+	cat("\n Where function is:\n")
+	cat("   ToDo       - print a to-do list\n")
+	cat("   Testing123 - Run the test suite\n")
+	cat("   NewTask    - Add to the task list\n")
+	cat("   Status     - Summary status\n")
+	cat("   ListTasks  - Print out a list of tasks\n")
+	cat("\n")
+     }
 
 # ===================================================================
 # 1. Prepare Problem
@@ -247,25 +327,52 @@ cat("===================================\n")
      # Data preparation - depends on the source of the data
      # ===========================================================================================
      
-     # Testing 123
-     cat("---------------------------------------------\nSumariseTasks()\n\n")
-     SumariseTasks()
+     if (is.na(argv[1]))
+     {
+	Usage()
+     } else if (argv[1] == "ToDo")
+     {
+	ToDo()
+     } else if (argv[1] == "Testing123")
+     {
+        # Testing 123
+        cat("---------------------------------------------\nSumariseTasks()\n\n")
+        SumariseTasks()
 
-     cat("---------------------------------------------\nPrintTasks(show=Full)\n\n")
-     GetInput(prompt="Next") -> BitBucket
-     PrintTasks(show="Full")
+        cat("---------------------------------------------\nPrintTasks(show=Full)\n\n")
+        GetInput(prompt="Next") -> BitBucket
+        PrintTasks(show="Full")
 
-     cat("---------------------------------------------\nPrintTasks(Group=R functions)\n\n")
-     GetInput(prompt="Next") -> BitBucket
-     PrintTasks(Group="R functions", Status="*")
+        cat("---------------------------------------------\nPrintTasks(Group=R functions)\n\n")
+        GetInput(prompt="Next") -> BitBucket
+        PrintTasks(Group="R functions", Status="*")
 
-     cat("---------------------------------------------\nPrintTasks(Project=unknown)\n\n")
-     GetInput(prompt="Next") -> BitBucket
-     PrintTasks(Project="unknown", Status="*")
+        cat("---------------------------------------------\nPrintTasks(Project=unknown, paginate=FALSE)\n\n")
+        GetInput(prompt="Next") -> BitBucket
+        PrintTasks(Project="unknown", Status="*", paginate=FALSE)
 
-     cat("---------------------------------------------\nToDo list\n\n")
-     GetInput(prompt="Next") -> BitBucket
-     ToDo()
+        cat("---------------------------------------------\nToDo list\n\n")
+        GetInput(prompt="Next") -> BitBucket
+        ToDo()
+     } else if (argv[1] == "Status")
+     {
+	SumariseTasks()
+     } else if (argv[1] == "NewTask") 
+     {
+	CaptureTask() -> T
+        if (nrow(T) > 0)
+           rbind(T, Tasks) -> Tasks
+     } else if (argv[1] == "ListTasks") 
+     {
+	# Add flags
+	#   -project <projectName>
+	#   -group <groupName>
+	#   -status <listOfStatuses>
+	#   -show <Full|Summary>
+	#   -paginate <TRUE|FALSE>
+	
+	PrintTasks(Status="*")
+     } else Usage()
 
      # Time to go home
      SaveTasks()
