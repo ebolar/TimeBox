@@ -57,7 +57,7 @@ cat("===================================\n")
 	read.csv(filename, header=TRUE, stringsAsFactors=FALSE)
      }
 
-     GetInput <- function (prompt="Come come, elucidate your thoughts: ") 
+     GetInput <- function (prompt="Come come, elucidate your thoughts: ", default="") 
      {
 	if (interactive()) {
 	  # Interactive R
@@ -67,6 +67,10 @@ cat("===================================\n")
 	  cat(prompt)
 	  readLines("stdin", n=1) -> x
 	}
+
+	if (x == "")
+	default
+	else
 	x
      }
 
@@ -89,7 +93,7 @@ cat("===================================\n")
      LoadConfig <- function ()
      {
 	# First check that the file exists and produce an error otherwise
-	read.csv("Config.csv", header=TRUE, stringsAsFactors=TRUE, na.strings="") 
+	read.csv("Config.csv", header=TRUE, stringsAsFactors=TRUE, na.strings="")
      }
 
      SaveConfig <- function ()
@@ -98,9 +102,9 @@ cat("===================================\n")
 	write.csv(Config, file="Config.csv", row.names=FALSE) 
      }
 
-     SaveTasks <- function (Selection="*")
+     SaveTasks <- function (Organisation="*", Project="*", Group="*", Task="*")
      {
-	write.csv(Tasks[grep(Selection,Tasks$Task),], file="Task List.csv", row.names=FALSE)
+	write.csv(SelectTasks(Organisation, Project, Group, Task), file="Task List.csv", row.names=FALSE)
      }
 
      LoadTasks <- function ()
@@ -110,8 +114,8 @@ cat("===================================\n")
 	
 	for (col in 1:ncol(T))
 	   "" -> T[is.na(T[,col]),col]
-	   
-	return(T)
+
+	IndexTasks(T)
      }
 
      IndexTasks <- function (T) 
@@ -129,34 +133,50 @@ cat("===================================\n")
 	} else print("Error: Unknown Task type")
 	return (T)
      }
-     
-     CaptureTask <- function(Project="")
+
+     SelectTasks <- function(Organisation="*", Project="*", Group="*", Task="*") 
      {
-	GetInput(prompt=sprintf("Project [%s] : ", Project)) -> Project
+	T <- Tasks[grep(Organisation, Tasks$Organisation),]
+	T <- T[grep(Project, T$Project),]
+	T <- T[grep(Group, sprintf("%s-%s-%s", T$Group1, T$Group2, T$Group3)),]
+	T <- T[grep(Task, T$Task),]
+
+	return (T)
+     }
+     
+     CaptureTask <- function(Organisation="", Project="")
+     {
         # Select & Validate the project
+	GetInput(prompt=sprintf("Organisation [%s] : ", Organisation), default=Organisation) -> Organisation
+	GetInput(prompt=sprintf("Project      [%s] : ", Project), default=Project) -> Project
+
+	(Tasks$Organisation==Organisation & Tasks$Project==Project) -> rows
+	print(unique(sort(paste(Tasks$Group1[rows],Tasks$Group2[rows],Tasks$Group3[rows], sep="-"))))
+	cat("\n")
 
 	# Variable names for the following groups based on the project type
-	GetInput(prompt="Group1      : ") -> Group1
-	GetInput(prompt="Group2      : ") -> Group2
-	GetInput(prompt="Group3      : ") -> Group3
+	GetInput(prompt="Group1           : ") -> Group1
+	GetInput(prompt="Group2           : ") -> Group2
+	GetInput(prompt="Group3           : ") -> Group3
 	
 	# What needs to be done
-	GetInput(prompt="Task        : ") -> Task
-	GetInput(prompt="Description : ") -> Description
+	GetInput(prompt="Task             : ") -> Task
+	GetInput(prompt="Description      : ") -> Description
 
 	# Priority could be derived.  Some people may want to enter it.
-	GetInput(prompt="Urgency     : ") -> Urgency
-	GetInput(prompt="Importance  : ") -> Importance
-	GetInput(prompt="Effort      : ") -> Effort
+	GetInput(prompt="Urgency          : ") -> Urgency
+	GetInput(prompt="Importance       : ") -> Importance
+	GetInput(prompt="Effort           : ") -> Effort
 	     
 	# Can we derive the status?  How do we ensure that only the valid status types are entered.
-	GetInput(prompt="Status      : ") -> Status
-	GetInput(prompt="Who         : ") -> Who
-	GetInput(prompt="Due Date    : ") -> DateDue
+	GetInput(prompt="Status           : ") -> Status
+	GetInput(prompt="Who              : ") -> Who
+	GetInput(prompt="Due Date         : ") -> DateDue
 
 	return(
 	   data.frame(
 	      ID="",
+	      Organisation=Organisation,
 	      Project=Project,
 	      Group1=Group1,
 	      Group2=Group2,
@@ -178,29 +198,36 @@ cat("===================================\n")
 	  )
      }
 
-     PrintTasks <- function (Project="*", Group="*", Status=c("InProgress","Next","Completed","Defect"), show="Summary", paginate=TRUE) 
+     NewTask <- function(Organisation="", Project="")
+     {
+   	CaptureTask(Organisation, Project) -> T
+           if (nrow(T) > 0)
+              rbind(Tasks, T) -> Tasks
+
+        IndexTasks(Tasks)
+     }
+
+     PrintTasks <- function (Organisation="*", Project="*", Group="*", Status=c("InProgress","Next","Completed","Defect"), show="Summary", paginate=TRUE) 
      {
 	# Put a box around this
 	# Responsive configuration based on page width
 	# Just make it work!!!
 	
 	# cat(sprintf("Project %s, Group %s, Status (%s), show=%s, Paginate=%s\n", toString(Project), toString(Group), toString(Status), toString(show), toString(paginate)))
-	# ID,Project,Group,Task,Status
-	# Implementation,Activity,Requires,
-	# Priority,Urgency,Importance,
-	# Effort,Who,DateAssigned,DateStarted,DateCompleted,DateDue
 	
 	if (paginate) 
 	    sink(file=".Tasks.PrintTasks", type="output")
 
-	sprintf("Project/Group: %s/%s", Project, Group) -> Selection
-	# cat(sprintf("1.Listing tasks for %s", Selection))
+	sprintf("Organisation/Project/Group/Status: %s/%s/%s/%s", Organisation, Project, Group, paste(Status)) -> Selection
+	# cat(sprintf("1.Listing tasks for %s\n", Selection))
 	
 	# Filter out the entries we want
 	#   by Project and group
-	T1 <- Tasks[grep(Project, Tasks$Project),]
-	T1 <- T1[grep(Group, sprintf("%s-%s-%s", T1$Group1, T1$Group2, T1$Group3)),]
-	  
+	# T1 <- Tasks[grep(Organisation, Tasks$Organisation),]
+	# T1 <- T1[grep(Project, T1$Project),]
+	# T1 <- T1[grep(Group, sprintf("%s-%s-%s", T1$Group1, T1$Group2, T1$Group3)),]
+	SelectTasks(Organisation, Project, Group) -> T1
+
 	#   by Status
 	data.frame() -> T
 	for (s in Status)
@@ -243,19 +270,15 @@ cat("===================================\n")
 
 	if (paginate) {
 	   sink()
-	   #file.show(file=".Tasks", delete.file=TRUE, title=sprintf("Listing tasks for %s", Selection))
-	   file.show(file=".Tasks.PrintTasks", title=sprintf("Listing tasks for %s", Selection))
+	   file.show(file=".Tasks.PrintTasks", delete.file=TRUE, title=sprintf("Listing tasks for %s", Selection))
+	   # file.show(file=".Tasks.PrintTasks", title=sprintf("Listing tasks for %s", Selection))
 	}
      }
 
-     SumariseTasks <- function (Project="*", Group="*")
+     SummariseTasks <- function (Organisation="*", Project="*", Group="*")
      {
-	# ID,Project,Group,Task,
-	# Implementation,Activity,Requires,
-	# Priority,Urgency,Importance,
-	# Effort,Who,DateAssigned,DateStarted,DateCompleted,DateDue
-	
 	T <- Tasks[grep(Project, Tasks$Project),]
+	T <- Tasks[grep(Organisation, Tasks$Organisation),]
 	T <- T[grep(Group, sprintf("%s-%s-%s", T$Group1, T$Group2, T$Group3)),]
 		  
 	for (row in 1:nrow(T)) {
@@ -279,29 +302,17 @@ cat("===================================\n")
 	cat("\n===============\n")
      }
      
-     ToDo <- function() {
+     ToDo <- function(Organisation="*", Project="*", Group="*") {
+	# Hm... this is just a vertical Kanban sorted by project and filtered for my stuff
+	
 	cat("Backlog\n====================\n")
-	PrintTasks(Status="Next", paginate=FALSE)
-	PrintTasks(Status="Defect", paginate=FALSE)
+	PrintTasks(Organisation=Organisation, Project=Project, Group=Group, Status="Backlog", paginate=FALSE)
+	PrintTasks(Organisation=Organisation, Project=Project, Group=Group, Status="Next", paginate=FALSE)
+	PrintTasks(Organisation=Organisation, Project=Project, Group=Group, Status="Defect", paginate=FALSE)
 	cat("\nToDo\n====================\n")
-	PrintTasks(Status="InProgress", show="Full", paginate=FALSE)
+	PrintTasks(Organisation=Organisation, Project=Project, Group=Group, Status="InProgress", show="Full", paginate=FALSE)
 	cat("\nCompleted\n====================\n")
-	PrintTasks(Status="Complete", paginate=FALSE)
-     }
-
-     Usage <- function() 
-     {
-	cat("Time Box\n")
-        cat("---------------------------------------------\n\n")
-	cat(" Time management in R\n")
-	cat("\n TimeBox.R <function>\n")
-	cat("\n Where function is:\n")
-	cat("   ToDo       - print a to-do list\n")
-	cat("   Testing123 - Run the test suite\n")
-	cat("   NewTask    - Add to the task list\n")
-	cat("   Status     - Summary status\n")
-	cat("   ListTasks  - Print out a list of tasks\n")
-	cat("\n")
+	PrintTasks(Organisation=Organisation, Project=Project, Group=Group, Status="Complete", paginate=FALSE)
      }
 
 # ===================================================================
@@ -313,7 +324,7 @@ cat("===================================\n")
      #library(corrplot)
      #library(psych)
 
-     LoadConfig() -> Config
+     # LoadConfig() -> Config
 
 # b) Load dataset
 
@@ -327,57 +338,82 @@ cat("===================================\n")
      # Data preparation - depends on the source of the data
      # ===========================================================================================
      
-     if (is.na(argv[1]))
+     if (!is.na(argv[1]))
      {
-	Usage()
-     } else if (argv[1] == "ToDo")
+        if (argv[1] == "ToDo")
+        {
+   	   ToDo()
+        } 
+        else if (argv[1] == "DN")
+        {
+   	   ToDo("DN")
+        } 
+        else if (argv[1] == "Home")
+        {
+   	   ToDo("Home")
+        } 
+	else if (argv[1] == "Testing123")
+        {
+           # Testing 123
+           cat("---------------------------------------------\nSummariseTasks()\n\n")
+           SummariseTasks()
+   
+           cat("---------------------------------------------\nPrintTasks(show=Full)\n\n")
+           GetInput(prompt="Next") -> BitBucket
+           PrintTasks(show="Full")
+   
+           cat("---------------------------------------------\nPrintTasks(Group=R functions)\n\n")
+           GetInput(prompt="Next") -> BitBucket
+           PrintTasks(Group="R functions", Status="*")
+   
+           cat("---------------------------------------------\nPrintTasks(Project=unknown, paginate=FALSE)\n\n")
+           GetInput(prompt="Next") -> BitBucket
+           PrintTasks(Project="unknown", Status="*", paginate=FALSE)
+   
+           cat("---------------------------------------------\nToDo list\n\n")
+           GetInput(prompt="Next") -> BitBucket
+           ToDo()
+        } 
+	else if (argv[1] == "Status")
+        {
+   	   SummariseTasks()
+        } 
+	else if (argv[1] == "NewTask") 
+        {
+   	   CaptureTask() -> T
+              if (nrow(T) > 0)
+                 rbind(T, Tasks) -> Tasks
+        } 
+	else if (argv[1] == "ListTasks") 
+        {
+           # Add flags
+           #   -project <projectName>
+           #   -group <groupName>
+           #   -status <listOfStatuses>
+           #   -show <Full|Summary>
+           #   -paginate <TRUE|FALSE>
+   	
+           PrintTasks(Status="*")
+        } 
+     } else 
      {
-	ToDo()
-     } else if (argv[1] == "Testing123")
-     {
-        # Testing 123
-        cat("---------------------------------------------\nSumariseTasks()\n\n")
-        SumariseTasks()
-
-        cat("---------------------------------------------\nPrintTasks(show=Full)\n\n")
-        GetInput(prompt="Next") -> BitBucket
-        PrintTasks(show="Full")
-
-        cat("---------------------------------------------\nPrintTasks(Group=R functions)\n\n")
-        GetInput(prompt="Next") -> BitBucket
-        PrintTasks(Group="R functions", Status="*")
-
-        cat("---------------------------------------------\nPrintTasks(Project=unknown, paginate=FALSE)\n\n")
-        GetInput(prompt="Next") -> BitBucket
-        PrintTasks(Project="unknown", Status="*", paginate=FALSE)
-
-        cat("---------------------------------------------\nToDo list\n\n")
-        GetInput(prompt="Next") -> BitBucket
-        ToDo()
-     } else if (argv[1] == "Status")
-     {
-	SumariseTasks()
-     } else if (argv[1] == "NewTask") 
-     {
-	CaptureTask() -> T
-        if (nrow(T) > 0)
-           rbind(T, Tasks) -> Tasks
-     } else if (argv[1] == "ListTasks") 
-     {
-	# Add flags
-	#   -project <projectName>
-	#   -group <groupName>
-	#   -status <listOfStatuses>
-	#   -show <Full|Summary>
-	#   -paginate <TRUE|FALSE>
-	
-	PrintTasks(Status="*")
-     } else Usage()
+        cat("Time Box\n")
+        cat("---------------------------------------------\n\n")
+        cat(" Time management in R\n")
+        cat("\n TimeBox.R <function>\n")
+        cat("\n Where function is:\n")
+        cat("   ListTasks  - Print out a list of tasks\n")
+        cat("   NewTask    - Add to the task list\n")
+        cat("   Status     - Summary status\n")
+        cat("   Testing123 - Run the test suite\n")
+        cat("   ToDo       - print a to-do list\n")
+        cat("\n")
+     }
 
      # Time to go home
      SaveTasks()
 
-     SaveConfig()
+     # SaveConfig()
 
 #
 ## ===================================================================
