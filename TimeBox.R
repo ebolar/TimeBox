@@ -1,6 +1,106 @@
-# R Project Template
+# ===================================================================
+# Time Box - planner and task tracker
+# ===================================================================
+# Time management in R for busy people, and a good excuse for me to 
+# learn more about R.
+# 
+# :) (Am I wasting time here?) :)
+# 
+# The set of routines are a bit of a dogs breakfast.  
+# Can I clean these up, 
+#   - make them more functional by removing side effects.  
+#   - add a layer for dealing with the environment.
+# ===================================================================
+# function(parameter="default"[option1|option2|...]) {environment} -> result {environment}
+# 
+# 1. General  
+# 1.1 Environment setup
+#  o argv
+#  o rerun()
+#  o libraries(stringr, ...)
+#  o Test harness
+#
+# 1.1 Helper functions
+#  o GetCSV(prompt) {CSVfile} -> data.frame(CSV) {CSVfile}
+#  o GetInput(prompt, default) -> value
+#  o str_field(string, width=1, side="right"[right|left|both]) -> StringField
+# 
+# 1.2 R Package
+# ===================================================================
+# 2.   Time Box
+# 2.1   Task repository - Sources (& Sinks)
+#  o LoadConfig() {ConfigurationFile} -> {ConfigurationFile x Configuration}
+#  o SaveConfig() {Configuration} -> {ConfigurationFile x Configuration}
+#  o LoadTasks(Source) -> {Source x Tasks}
+#  o SaveTasks(Selection) {Source x Tasks} -> {Source x Tasks}
+#  . SaveTasks(Source, Selection) {Tasks} -> {Source x Tasks}
+#  . SaveTasks(Source, Tasks) -> {Source x Tasks}
+#  o EmptyTasks() -> Tasks "Dataframe is empty.  Data types for all fields are configured"
+#  o IndexTasks(Tasks) -> IndexedTasks "Internal index numbers reset"
+#  . Map2Tasks(Source, Fields) {Configuration} -> MappedTasks {Configuration} "Maps fields onto default Task columns"
+# 
+# 2.1.1   Spreadsheet - Source<CSVfile, ExcelFile, ...>
+# 2.1.2   Calendar - Sink<Google, Outlook, ...>
+# 2.1.3   Outlook - Source<task, email{folder, flags, importance, etc}>
+# 2.1.4   Productivity tools - Source<Jira, Confluence {tasks}, Microsoft Planner, ...>
+# 2.1.5   Database - Source<Oracle, ProgreSQL, ...>
+# 2.1.6   SMTP/iMAP - Source<email address> "Listen for emails to an address, send updates to a mailing list"
+# 
+# 2.2   Function library
+# 2.2.1   Tasks (Basic functions)
+#  o SelectTasks(Selection) {Tasks} -> SelectedTasks {Tasks}
+#  o SortTasks(Tasks, orderBy="Tasks"[any field]) -> Index
+#  o UpdateTasks(Selection, column, value) {Tasks} -> {Tasks}
+#  o NewTask(Project) {Tasks} -> {Tasks}
+#  
+# 2.2.2   Configuration
+#  PROJECT=list(
+#    Organisation=""
+#    Project=""
+#    Groups=list("a", "b", "c")
+#    Status=list("x", "y", "z")
+#  )  
+#  SOURCE=list(
+#    Type="CSV"
+#    FieldMapping=list()
+#    CSVfile="TimeBox.csv"
+#  )
+#  UI
+#  
+#  
+# 2.2.3   Sources (& Sinks)
+# 2.2.4   Projects
+# 
+# 2.3   User Interfaces
+# 2.3.1   R functions
+# 2.3.2   R Text based menu
+#  . Simple menu
+# 2.3.3   Rscript Text based menu
+#  o Simple command line parser
+# 2.3.4   R Shiny
+# 
+# 2.4   Productivity toolkit
+# 2.4.1   Task manipulation
+#  o CaptureTask(UI, Project) -> Task
+#  o PrintTasks(UI, Tasks) -> 
+#  o ListTasks(UI, Selection, show="Summary"[List|Summary|Full], paginate=TRUE[TRUE|FALSE]) {Tasks} -> {Tasks}
+#  o SummariseTasks(UI, Selection, paginate=TRUE[TRUE|FALSE]) {Tasks} -> {Tasks}
+#  o ToDo(UI, Selection, paginate=TRUE[TRUE|FALSE]) {Tasks} -> {Tasks}
+#  . ChangeStatus(UI, Selection, NewStatus="") {Tasks} -> {Tasks}
+#  . ChangeOwner(UI, Selection, NewOwner="") {Tasks} -> {Tasks}
+#  . ChangeOwner(UI, Selection, NewOwner="") {Tasks} -> {Tasks}
+#  . ChangeOwner(UI, Selection, NewOwner="") {Tasks} -> {Tasks}
+#  . Change(UI, Selection, column, value) {Tasks} -> {Tasks}
+#  . Change(UI, Tasks, column, value) -> UpdatedTasks "Not sure this is useable"
+# 
+# 2.4.1   Dashboards and summaries
+# 2.4.2   ToDo list - what do I need to do today?
+# 2.4.3   End of week report - how much progress did we make?
+# 
+# 
 cat("Time Box - Planner and task tracker\n")
 cat("===================================\n")
+cat("Time management in R for busy people\n")
 
 # ===================================================================
 # 0. Environment setup
@@ -8,37 +108,29 @@ cat("===================================\n")
      # Cleanup
      rm(list = ls())
 
-     # Multicore parallelisation
-     # -------------------------
-     #library(doMC)
-     #registerDoMC(cores=3)
-
      library(stringr)
 
-     # Workstation farm parallelisation
-     # --------------------------------
-     #library(foreach)
-     #library(doParallel)
-     #
-     # Setup the cluster
-     #makeCluster(3) -> myclust
-     #registerDoParallel(myclust)
-     #
-     # export any shared variables
-     #... create the variable
-     #clusterExport(myclust, variable)
-     #... algorithm goes here
-     #stopCluster(myclust)
-     #
-     
+     # minimum 80 columns
      Sys.getenv("COLUMNS") -> cols
-     132 -> cols[cols<40]
+     80 -> cols[cols<80]
      options(width=as.integer(cols))
      rm(cols)
 
      commandArgs(TRUE) -> argv
      
-     # helpers
+     TB <- "TimeBox.R"
+
+     rerun <- function ()
+     {
+	     source(TB)
+     }
+     
+     # ===================================================================
+     # 1. Functions 
+     # 1.1 General helpers
+     # 1.2 R Package
+
+     # List CSVs and load one
      GetCSV <- function (prompt="Enter filename: ") {
 	# Prompts for a CSV file then reads it into a data frame
 	# would be good to be able to pass in the directory to read from
@@ -57,6 +149,7 @@ cat("===================================\n")
 	read.csv(filename, header=TRUE, stringsAsFactors=FALSE)
      }
 
+     # Generalised input grabber
      GetInput <- function (prompt="Come come, elucidate your thoughts: ", default="") 
      {
 	if (interactive()) {
@@ -74,22 +167,65 @@ cat("===================================\n")
 	x
      }
 
-     TB <- "TimeBox.R"
-
-     rerun <- function ()
-     {
-	     source(TB)
-     }
-     
+     # Display as a fixed width field, truncating or padding as required.
+     # Requires library stringr
      str_field <- function (string, width=1, side="right") {
-	if(nchar(string) < width) 
-	   nchar(string) -> l
+	if(nchar(as.character(string)) < width) 
+	   nchar(as.character(string)) -> l
 	else
 	   width -> l
 	
 	return(str_pad(substr(string,1,l), width=width, side=side))
      }
      
+     # Wrap(String, Width) -> StringList (or other data type?)
+
+     # ===================================================================
+     # 2.   Time Box
+     # 2.1   Task repository - Sources (& Sinks)
+     #         LoadConfig() x ConfigurationFile -> ConfigurationFile x Configuration
+     #         SaveConfig() x Configuration -> ConfigurationFile x Configuration
+     #         LoadTasks() x Source -> Source x Tasks
+     #         SaveTasks() x Tasks -> Source x Tasks
+     #         EmptyTasks() -> Tasks {empty, data types configured}
+     #         IndexTasks() x Tasks -> Tasks {Internal index numbers reset}
+     #
+     # 2.1.1   Spreadsheet (CSV, Excel, ...)
+     # 2.1.2   Calendar (Sink to <Google, Outlook, ...>)
+     # 2.1.3   Outlook (task, email <folder, flags, importance, etc>)
+     # 2.1.4   Productivity tools (Jira, Confluence <tasks>, Microsoft Planner, ...)
+     # 2.1.5   Database
+     # 2.1.6   SMTP/iMAP (Listen for emails to an address, send updates to a mailing list)
+     # 2.2   Function library
+     # 2.2.1   Tasks (Basic functions)
+     # 2.2.2   Configuration
+     # 2.2.3   Sources (& Sinks)
+     # 2.2.4   Projects
+     # 2.3   User Interfaces
+     # 2.3.1   R functions
+     # 2.3.2   R Text based menu
+     # 2.3.3   Rscript Text based menu
+     # 2.3.4   R Shiny
+     # 2.4   Productivity toolkit
+     # 2.4.1   Dashboards and summaries
+     # 2.4.2   ToDo list - what do I need to do today?
+     # 2.4.3   End of week report - how much progress did we make?
+     # 2.4.4   Prioritising the work - what do I do next?
+     
+     # 2.1   Task repository
+     # ===================================================================
+     # 2.1.1   CSV
+     # ===================================================================
+     #
+     # To be rewritten
+     # - Load and save are generic Task factories
+     # - Operate on a polymorphic task Source class for CSV, XLS, Outlook, ...
+     # - Sources are defined in the configuration (a list)
+     # - Tasks include internal and externally defined ID's
+     # - Source configuration includes defaults for Organisation and Project
+     # - Can push reminders to your calendar
+     #
+
      LoadConfig <- function ()
      {
 	# First check that the file exists and produce an error otherwise
@@ -107,15 +243,43 @@ cat("===================================\n")
 	write.csv(SelectTasks(Organisation, Project, Group, Task), file="Task List.csv", row.names=FALSE)
      }
 
-     LoadTasks <- function ()
+     LoadTasks <- function (CSVfile="Task List.csv")
      {
 	# First check that the file exists and produce an error otherwise
-	read.csv("Task List.csv", header=TRUE, stringsAsFactors=FALSE) -> T 
-	
-	for (col in 1:ncol(T))
-	   "" -> T[is.na(T[,col]),col]
+	tryCatch(
+	    {
+	        read.csv(CSVfile, header=TRUE, stringsAsFactors=FALSE) -> T
 
-	IndexTasks(T)
+	        if (nrow(T) >0)
+	            for (col in 1:ncol(T))
+	                "" -> T[is.na(T[,col]),col]
+
+		# Map and validate the columns read in
+		# Pull this from the Project configuration list and standard default values
+	        T$Urgency <- factor(T$Urgency, levels=c("High","Low",NA))
+	        T$Importance <- factor(T$Importance, levels=c("High","Low",NA))
+	        T$Status <- factor(T$Status, levels=c("Idea","Backlog","Next","InProgress","Completed",NA))
+	        IndexTasks(T) 
+	    },
+	    error = function(e) {
+	        if (grepl("no lines available in input", e$message))
+		    return(EmptyTasks())
+	        else {
+		    # if debug str(e)
+	    	    stop(sprintf("LoadTasks(\"%s\") : %s", CSVfile, e))
+		}
+	    },
+	    warning = function(w) {
+		if (grepl("No such file or directory", w$message))
+		    return(EmptyTasks())
+		else {
+		    # if debug str(w)
+	    	    warning(sprintf("LoadTasks(\"%s\") : %s", CSVfile, w))
+		    return(EmptyTasks())
+		}
+	    } 
+	) 
+
      }
 
      IndexTasks <- function (T) 
@@ -123,17 +287,45 @@ cat("===================================\n")
 	class(T) -> C
 	if (C == "data.frame") 
 	{
-	   for (row in 1:nrow(T))
-	     row -> T$ID[row]
+	    if (nrow(T) > 0)
+	        for (row in 1:nrow(T))
+	            row -> T$ID[row]
 	} else if (C == "character")
 	{
-	   NR=NROW(T)
-	   for (row in 1:NR)
-	     row -> T[row]
+	   if (NROW(T) > 0)
+	       for (row in 1:NROW(T))
+	           row -> T[row]
 	} else print("Error: Unknown Task type")
 	return (T)
      }
 
+     # Bootstrap a task list
+     EmptyTasks <- function()
+	return(
+	   data.frame(
+	      ID=character(),
+	      Organisation=character(),
+	      Project=character(),
+	      Group1=character(),
+	      Group2=character(),
+	      Group3=character(),
+	      Task=character(),
+	      Description=character(),
+	      Priority=character(),
+	      Urgency=factor(levels=c("High", "Low", NA)),
+	      Importance=factor(levels=c("High", "Low", NA)),
+	      Effort=character(),
+	      Status=factor(levels=c("Idea","Backlog","Next","InProgress","Completed",NA)),
+	      Who=character(),
+	      DateAssigned=character(),
+	      DateStarted=character(),
+	      DateCompleted=character(),
+	      DateDue=character()
+	      )
+	   )
+
+# 2.2 Basic functions
+# -------------------------------------------------------------------
      SelectTasks <- function(Organisation="*", Project="*", Group="*", Task="*") 
      {
 	T <- Tasks[grep(Organisation, Tasks$Organisation),]
@@ -143,7 +335,54 @@ cat("===================================\n")
 
 	return (T)
      }
-     
+
+     SortTasks <- function(T=Tasks, orderBy="Task")
+     {
+	 # Returns an index of tasks
+	 # Sometimes we want this sorted by Task name and sometimes by Status
+	 order(T$Organisation, T$Project, sprintf("%s-%s-%s", T$Group1, T$Group2, T$Group3), T[,orderBy])
+     }
+
+     # What makes sense for UpdateTask(s)?
+     # 1. UpdateTask x Task x Field -> Task, eg UpdateTask x Task x Status = "Closed"
+     # Is this the same list of fields for CaptureTask() and NewTask()
+     #
+     # 2. UpdateTasks Tasks x ID x Field -> Tasks
+     # Is a mass update of tasks possible, eg UpdateTasks(Tasks, value, field) -> updatedTasks
+     # 
+     # How do you make this configurable?
+     # Do I need a function at all?  How about just: Tasks[Selection, column] <- value
+     UpdateTasks <- function(Selection, column, value) Tasks[Selection, column] <<- value
+
+     # Bulk change or do this row by row
+     ChangeStatus <- function(Selection, NewStatus="", byRow=FALSE) {
+	# Updating status for PrintTasks(Selection)
+	# if nrow(unique) Selection$Status = 0 then OldStatus = ""
+	# if nrow(unique) Selection$Status > 1 then OldStatus = "mixed"
+	# if nrow(unique) Selection$Status = 1 then OldStatus = "whatever the old status was"
+	# Prompt for NewStatus [old status]
+	# If NewStatus entered then 
+	     # UpdateTasks(Selection, "Status", NewStatus)
+     }
+
+     ChangeOwner <- function(Selection) {
+     }
+
+     ChangeDescription <- function(Selection) {
+     }
+
+     ChangeDates <- function(Selection) {
+     }
+
+
+
+# -------------------------------------------------------------------
+# 2.3 User Interfaces
+# 2.3.1 R functions
+
+     # Is there a way to define the fields for a Task through configuration?
+     # How do you deal with changes in the format of a task list?
+     #
      CaptureTask <- function(Organisation="", Project="")
      {
         # Select & Validate the project
@@ -207,113 +446,161 @@ cat("===================================\n")
         IndexTasks(Tasks)
      }
 
-     PrintTasks <- function (Organisation="*", Project="*", Group="*", Status=c("InProgress","Next","Completed","Defect"), show="Summary", paginate=TRUE) 
-     {
-	# Put a box around this
-	# Responsive configuration based on page width
-	# Just make it work!!!
-	
-	# cat(sprintf("Project %s, Group %s, Status (%s), show=%s, Paginate=%s\n", toString(Project), toString(Group), toString(Status), toString(show), toString(paginate)))
-	
-	if (paginate) 
-	    sink(file=".Tasks.PrintTasks", type="output")
+     PrintTasks <- function (T) {
+        SortTasks(T) -> Index
+        if (nrow(T) > 0)
+	    for (row in Index) {
+		cat(sprintf("[%s|%s|%s]", T$ID[row], T$Status[row], T$Who[row]))
+		cat(sprintf(" %s/%s", T$Organisation[row], T$Project[row]))
+		cat(sprintf(" %s-%s-%s", T$Group1[row], T$Group2[row], T$Group3[row]))
+		cat(sprintf(" %s \"%s\"\n", T$Task[row], T$Description[row]))
+	    }
+     }
 
-	sprintf("Organisation/Project/Group/Status: %s/%s/%s/%s", Organisation, Project, Group, paste(Status)) -> Selection
-	# cat(sprintf("1.Listing tasks for %s\n", Selection))
+     ListTasks <- function (Organisation="*", Project="*", Group="*", Status=c("InProgress","Next","Completed","Defect"), show="Summary", paginate=TRUE) 
+     {
+	if (paginate) 
+	    sink(file=".Tasks.ListTasks", type="output")
+
+	sprintf("Project %s, Group %s, Status (%s), show=%s\n", toString(Project), toString(Group), toString(Status), toString(show)) -> Selection
+	# cat(sprintf("Listing tasks for %s\n", Selection))
 	
 	# Filter out the entries we want
 	#   by Project and group
-	# T1 <- Tasks[grep(Organisation, Tasks$Organisation),]
-	# T1 <- T1[grep(Project, T1$Project),]
-	# T1 <- T1[grep(Group, sprintf("%s-%s-%s", T1$Group1, T1$Group2, T1$Group3)),]
 	SelectTasks(Organisation, Project, Group) -> T1
-
 	#   by Status
 	data.frame() -> T
 	for (s in Status)
 	    rbind(T, T1[grep(s, T1$Status),]) -> T
 
-	if (nrow(T) > 0) 
-	    for (row in 1:nrow(T)) {
-		# cat(sprintf("%s-%s-%s-%s\n", Project, row, T$Project[row], nrow(T)))
+	# Now printout in different formats
+	if (show == "Full") {
+	    SortTasks(T) -> Index
 
-	    	if (Project != T$Project[row]) {
-	    	    Project = T$Project[row]
-	    	    cat(sprintf("Project: %s\n", T$Project[row]))
-		    # print(summary(as.factor(T$Group1)))
-		    # cat("\n")
-	    	}
+	    if (nrow(T) > 0) 
+	        for (row in Index) {
+	    	    if (Organisation != T$Organisation[row]) {
+    	                Organisation = T$Organisation[row]
+	                cat("----------------------\n")
+	                cat(sprintf("Organisation: %s\n", T$Organisation[row]))
+	    	    }
 
-	    	if (Group != sprintf("%s-%s-%s", T$Group1[row], T$Group2[row], T$Group3[row])) {
-		    Group = sprintf("%s-%s-%s", T$Group1[row], T$Group2[row], T$Group3[row])
-	    	    cat(sprintf("  %s-%s-%s\n", T$Group1[row], T$Group2[row], T$Group3[row]))
-	    	}
+	    	    if (Project != T$Project[row]) {
+	    	        Project = T$Project[row]
+		        cat("  ......................\n")
+	    	        cat(sprintf("  Project: %s\n", T$Project[row]))
+	        	}
 
-	    	if (show == "Full") {
+	    	    if (Group != sprintf("%s-%s-%s", T$Group1[row], T$Group2[row], T$Group3[row])) {
+		        Group = sprintf("%s-%s-%s", T$Group1[row], T$Group2[row], T$Group3[row])
+	    	        cat(sprintf("    %s-%s-%s\n", T$Group1[row], T$Group2[row], T$Group3[row]))
+	    	    }
+
 		    cat(sprintf("    %s %s\n", str_pad(paste("[",T$ID[row],"]", sep=""),7), T$Task[row]))
 		    cat(sprintf("            \"%s\"\n", T$Description[row]))
 		    cat(sprintf("            Status [%s]", T$Status[row]))
 		    cat(sprintf(", Priority [%s/%s]", T$Urgency[row], T$Importance[row]))
 		    cat(sprintf(", Assigned to: %s. Due: %s\n", T$Who[row], T$DateDue[row]))
-		    # cat(sprintf("    [%s] %s - %s\n", T$ID[row], T$Task[row], T$Description[row]))
-		    # cat(sprintf("    \tStatus [%s]", T$Status[row]))
-		    # cat(sprintf(", Priority [%s/%s]", T$Urgency[row], T$Importance[row]))
-		    # cat(sprintf(", Assigned to: %s. Due: %s\n", T$Who[row], T$DateDue[row]))
-	    	} else {
-		    cat(sprintf("    %s %s %s %s\n", 
-		    str_pad(paste("[",T$ID[row],"]", sep=""),7), 
-		    str_field(T$Task[row],40, side="right"), 
-		    paste("[",str_field(T$Status[row], width=8, side="both"),"]", sep=""), 
-		    paste("\"",str_field(T$Description[row],60, side="right"),"\"", sep="")))
-	    	}
-	    }
+		}
+	} else if (show == "Summary") {
+	    SortTasks(T) -> Index
+
+	    if (nrow(T) > 0) 
+	        for (row in Index) {
+	    	    if (Organisation != T$Organisation[row]) {
+    	                Organisation = T$Organisation[row]
+	                cat("----------------------\n")
+	                cat(sprintf("Organisation: %s\n", T$Organisation[row]))
+	    	    }
+
+	    	    if (Project != T$Project[row]) {
+	    	        Project = T$Project[row]
+		        cat("  ......................\n")
+	    	        cat(sprintf("  Project: %s\n", T$Project[row]))
+	        	}
+
+	    	    if (Group != sprintf("%s-%s-%s", T$Group1[row], T$Group2[row], T$Group3[row])) {
+		        Group = sprintf("%s-%s-%s", T$Group1[row], T$Group2[row], T$Group3[row])
+	    	        cat(sprintf("    %s-%s-%s\n", T$Group1[row], T$Group2[row], T$Group3[row]))
+	    	    }
+
+		    cat(sprintf("     %s %s %s %s\n", 
+		       str_pad(paste("[",T$ID[row],"]", sep=""),7), 
+		       str_field(T$Task[row],40, side="right"), 
+		       paste("[",str_field(T$Status[row], width=8, side="both"),"]", sep=""), 
+		       paste("\"",str_field(T$Description[row],60, side="right"),"\"", sep="")))
+		}
+	} else if (show == "List") {
+	    SortTasks(T, orderBy="Status") -> Index
+
+	    if (nrow(T) > 0) 
+	        for (row in Index) {
+	            # cat(str_field(sprintf("<%s/%s %s-%s-%s>", T$Organisation[row], T$Project[row], T$Group1[row], T$Group2[row], T$Group3[row]),35))
+	            cat(sprintf("%s", str_pad(paste("[",T$ID[row],"]", sep=""),7)))
+	            cat(str_field(sprintf("%s", T$Project[row]),15, side="left"))
+	            cat(sprintf(" : %s \"%s\"\n", str_field(T$Task[row],30), str_field(T$Description[row],50)))
+		}
+	} else {
+	    warning(sprintf("Unknown : show=\"%s\"", show))
+        }
 
 	if (paginate) {
 	   sink()
-	   file.show(file=".Tasks.PrintTasks", delete.file=TRUE, title=sprintf("Listing tasks for %s", Selection))
-	   # file.show(file=".Tasks.PrintTasks", title=sprintf("Listing tasks for %s", Selection))
+	   file.show(file=".Tasks.ListTasks", delete.file=TRUE, title=sprintf("Listing tasks for %s", Selection))
 	}
      }
 
-     SummariseTasks <- function (Organisation="*", Project="*", Group="*")
+     SummariseTasks <- function (Organisation="*", Project="*", Group="*", Task="*")
      {
-	T <- Tasks[grep(Project, Tasks$Project),]
-	T <- Tasks[grep(Organisation, Tasks$Organisation),]
-	T <- T[grep(Group, sprintf("%s-%s-%s", T$Group1, T$Group2, T$Group3)),]
-		  
-	for (row in 1:nrow(T)) {
-	    if (Project != T$Project[row]) {
-	    	Project = T$Project[row]
-	    	cat(sprintf("\n===============\n"))
-	    	cat(sprintf("Project: %s\n", T$Project[row]))
-		P <- T[grep(Project, T$Project), ]
+	SelectTasks(Organisation, Project, Group, Task) -> T
+	SortTasks(T) -> Index     
 
-		# Ideally needs a matrix - count of rows by Group and by status
-	    	cat("---------------\n")
-		cat("By group:\n")
-	    	print(summary(as.factor(P$Group1)))
+	Organisation = ""
+	Project = ""
+	if (nrow(T) > 0) 
+	    for (row in Index) {
+	        if (Organisation != T$Organisation[row]) {
+	    	    Organisation = T$Organisation[row]
+	    	    cat("===================================================\n")
+	            cat(sprintf("Organisation: %s\n", T$Organisation[row]))
+		}
+	        if (Project != T$Project[row]) {
+	    	    Project = T$Project[row]
+	            cat("---------------------------------------------------\n")
+	            cat(sprintf("Project: %s\n\n", T$Project[row]))
+	    	    P <- T[grep(Project, T$Project), ]
 
-	    	cat("---------------\n")
-	    	cat("By status:\n")
-	    	print(summary(as.factor(P$Status)))	
+		    print(with(P, table(Status, Group1)))
+		    cat("\n")
+	        }
 	    }
+	
+	cat("\n===================================================\n")
 	}
-	
-	cat("\n===============\n")
-     }
      
-     ToDo <- function(Organisation="*", Project="*", Group="*") {
+    ToDo <- function(Organisation="*", Project="*", Group="*", paginate=TRUE) 
+    {
 	# Hm... this is just a vertical Kanban sorted by project and filtered for my stuff
-	
-	cat("Backlog\n====================\n")
-	PrintTasks(Organisation=Organisation, Project=Project, Group=Group, Status="Backlog", paginate=FALSE)
-	PrintTasks(Organisation=Organisation, Project=Project, Group=Group, Status="Next", paginate=FALSE)
-	PrintTasks(Organisation=Organisation, Project=Project, Group=Group, Status="Defect", paginate=FALSE)
-	cat("\nToDo\n====================\n")
-	PrintTasks(Organisation=Organisation, Project=Project, Group=Group, Status="InProgress", show="Full", paginate=FALSE)
-	cat("\nCompleted\n====================\n")
-	PrintTasks(Organisation=Organisation, Project=Project, Group=Group, Status="Complete", paginate=FALSE)
-     }
+	if (paginate)    
+	    sink(file=".Tasks.ToDo", type="output")
+
+	cat("Backlog\n")
+	cat("===================================================\n")
+	ListTasks(Organisation=Organisation, Project=Project, Group=Group, Status="Backlog", show="List", paginate=FALSE)
+	ListTasks(Organisation=Organisation, Project=Project, Group=Group, Status="Next", paginate=FALSE)
+	ListTasks(Organisation=Organisation, Project=Project, Group=Group, Status="Defect", paginate=FALSE)
+	cat("\nToDo\n")
+	cat("===================================================\n")
+	ListTasks(Organisation=Organisation, Project=Project, Group=Group, Status="InProgress", show="Full", paginate=FALSE)
+	cat("\nCompleted\n")
+	cat("===================================================\n")
+	ListTasks(Organisation=Organisation, Project=Project, Group=Group, Status="Complete", show="List", paginate=FALSE)
+
+	if (paginate) {
+	   sink()
+	   file.show(file=".Tasks.ToDo", delete.file=TRUE, title="To Do list")
+	}
+    }
 
 # ===================================================================
 # 1. Prepare Problem
@@ -330,9 +617,6 @@ cat("===================================\n")
 
      # Get the task list
      LoadTasks() -> Tasks
-     for (row in 1:nrow(Tasks))
-     row -> Tasks$ID[row]
-     # read.csv("ToDo.csv", header=TRUE, stringsAsFactors=FALSE) -> ToDo
 
      # ===========================================================================================
      # Data preparation - depends on the source of the data
@@ -352,27 +636,30 @@ cat("===================================\n")
         {
    	   ToDo("Home")
         } 
-	else if (argv[1] == "Testing123")
+	 else if (argv[1] == "Testing123")
         {
            # Testing 123
            cat("---------------------------------------------\nSummariseTasks()\n\n")
            SummariseTasks()
    
-           cat("---------------------------------------------\nPrintTasks(show=Full)\n\n")
+           cat("---------------------------------------------\nListTasks(show=Full)\n\n")
            GetInput(prompt="Next") -> BitBucket
-           PrintTasks(show="Full")
+           ListTasks(show="Full")
    
-           cat("---------------------------------------------\nPrintTasks(Group=R functions)\n\n")
+           cat("---------------------------------------------\nListTasks(Group=R functions)\n\n")
            GetInput(prompt="Next") -> BitBucket
-           PrintTasks(Group="R functions", Status="*")
+           ListTasks(Group="R functions", Status="*")
    
-           cat("---------------------------------------------\nPrintTasks(Project=unknown, paginate=FALSE)\n\n")
+           cat("---------------------------------------------\nListTasks(Project=unknown, paginate=FALSE)\n\n")
            GetInput(prompt="Next") -> BitBucket
-           PrintTasks(Project="unknown", Status="*", paginate=FALSE)
+           ListTasks(Project="unknown", Status="*", paginate=FALSE)
    
            cat("---------------------------------------------\nToDo list\n\n")
            GetInput(prompt="Next") -> BitBucket
            ToDo()
+
+           cat("---------------------------------------------\nToDo list\n\n")
+	   # test the functions : LoadTasks() Empty.csv missing.csv noHeader.csv notAValid.csv
         } 
 	else if (argv[1] == "Status")
         {
@@ -393,13 +680,10 @@ cat("===================================\n")
            #   -show <Full|Summary>
            #   -paginate <TRUE|FALSE>
    	
-           PrintTasks(Status="*")
+           ListTasks(Status="*")
         } 
      } else 
      {
-        cat("Time Box\n")
-        cat("---------------------------------------------\n\n")
-        cat(" Time management in R\n")
         cat("\n TimeBox.R <function>\n")
         cat("\n Where function is:\n")
         cat("   ListTasks  - Print out a list of tasks\n")
