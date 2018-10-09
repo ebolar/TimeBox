@@ -258,7 +258,7 @@ cat("Time management in R for busy people\n")
 		# Pull this from the Project configuration list and standard default values
 	        T$Urgency <- factor(T$Urgency, levels=c("High","Low",NA))
 	        T$Importance <- factor(T$Importance, levels=c("High","Low",NA))
-	        T$Status <- factor(T$Status, levels=c("Idea","Backlog","Next","InProgress","Completed",NA))
+	        T$Status <- factor(T$Status, levels=c("Idea","Backlog","Next","InProgress","Completed","Waiting", "Weekly", NA))
 	        IndexTasks(T) 
 	    },
 	    error = function(e) {
@@ -538,7 +538,7 @@ cat("Time management in R for busy people\n")
 	            # cat(str_field(sprintf("<%s/%s %s-%s-%s>", T$Organisation[row], T$Project[row], T$Group1[row], T$Group2[row], T$Group3[row]),35))
 	            cat(sprintf("%s", str_pad(paste("[",T$ID[row],"]", sep=""),7)))
 	            cat(str_field(sprintf("%s", T$Project[row]),15, side="left"))
-	            cat(sprintf(" : %s \"%s\"\n", str_field(T$Task[row],30), str_field(T$Description[row],50)))
+	            cat(sprintf(" : %s [%s] \"%s\"\n", str_field(T$Task[row],30), str_pad(T$Status[row], 7), str_field(T$Description[row],50)))
 		}
 	} else {
 	    warning(sprintf("Unknown : show=\"%s\"", show))
@@ -587,10 +587,12 @@ cat("Time management in R for busy people\n")
 	cat("Backlog\n")
 	cat("===================================================\n")
 	ListTasks(Organisation=Organisation, Project=Project, Group=Group, Status="Backlog", show="List", paginate=FALSE)
-	ListTasks(Organisation=Organisation, Project=Project, Group=Group, Status="Next", paginate=FALSE)
-	ListTasks(Organisation=Organisation, Project=Project, Group=Group, Status="Defect", paginate=FALSE)
+	ListTasks(Organisation=Organisation, Project=Project, Group=Group, Status="Next", show="List", paginate=FALSE)
+	ListTasks(Organisation=Organisation, Project=Project, Group=Group, Status="Defect", show="List", paginate=FALSE)
+	ListTasks(Organisation=Organisation, Project=Project, Group=Group, Status="Waiting", show="List", paginate=FALSE)
 	cat("\nToDo\n")
 	cat("===================================================\n")
+	ListTasks(Organisation=Organisation, Project=Project, Group=Group, Status="Weekly", show="List", paginate=FALSE)
 	ListTasks(Organisation=Organisation, Project=Project, Group=Group, Status="InProgress", show="Full", paginate=FALSE)
 	cat("\nCompleted\n")
 	cat("===================================================\n")
@@ -626,7 +628,7 @@ cat("Time management in R for busy people\n")
      {
         if (argv[1] == "ToDo")
         {
-   	   ToDo()
+   	   ToDo(Organisation="DN", paginate=FALSE)
         } 
         else if (argv[1] == "DN")
         {
