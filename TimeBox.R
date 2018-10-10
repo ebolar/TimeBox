@@ -77,6 +77,8 @@
 #  . Simple menu
 # 2.3.3   Rscript Text based menu
 #  o Simple command line parser
+#  o DOS batch files
+#  . Linux bash scripts
 # 2.3.4   R Shiny
 # 
 # 2.4   Productivity toolkit
@@ -125,6 +127,7 @@ cat("Time management in R for busy people\n")
 	     source(TB)
      }
      
+
      # ===================================================================
      # 1. Functions 
      # 1.1 General helpers
@@ -182,35 +185,6 @@ cat("Time management in R for busy people\n")
 
      # ===================================================================
      # 2.   Time Box
-     # 2.1   Task repository - Sources (& Sinks)
-     #         LoadConfig() x ConfigurationFile -> ConfigurationFile x Configuration
-     #         SaveConfig() x Configuration -> ConfigurationFile x Configuration
-     #         LoadTasks() x Source -> Source x Tasks
-     #         SaveTasks() x Tasks -> Source x Tasks
-     #         EmptyTasks() -> Tasks {empty, data types configured}
-     #         IndexTasks() x Tasks -> Tasks {Internal index numbers reset}
-     #
-     # 2.1.1   Spreadsheet (CSV, Excel, ...)
-     # 2.1.2   Calendar (Sink to <Google, Outlook, ...>)
-     # 2.1.3   Outlook (task, email <folder, flags, importance, etc>)
-     # 2.1.4   Productivity tools (Jira, Confluence <tasks>, Microsoft Planner, ...)
-     # 2.1.5   Database
-     # 2.1.6   SMTP/iMAP (Listen for emails to an address, send updates to a mailing list)
-     # 2.2   Function library
-     # 2.2.1   Tasks (Basic functions)
-     # 2.2.2   Configuration
-     # 2.2.3   Sources (& Sinks)
-     # 2.2.4   Projects
-     # 2.3   User Interfaces
-     # 2.3.1   R functions
-     # 2.3.2   R Text based menu
-     # 2.3.3   Rscript Text based menu
-     # 2.3.4   R Shiny
-     # 2.4   Productivity toolkit
-     # 2.4.1   Dashboards and summaries
-     # 2.4.2   ToDo list - what do I need to do today?
-     # 2.4.3   End of week report - how much progress did we make?
-     # 2.4.4   Prioritising the work - what do I do next?
      
      # 2.1   Task repository
      # ===================================================================
@@ -226,16 +200,36 @@ cat("Time management in R for busy people\n")
      # - Can push reminders to your calendar
      #
 
+     #  o LoadConfig() {ConfigurationFile} -> {ConfigurationFile x Configuration}
      LoadConfig <- function ()
      {
-	# First check that the file exists and produce an error otherwise
-	read.csv("Config.csv", header=TRUE, stringsAsFactors=TRUE, na.strings="")
+	# A temporary measure until I can store and retrieve from a file
+	# I need some routines to search and get values from this list
+	# Would be nice to specify the Statuses for each Project rather than globally - maybe
+	list(
+	    Projects=list(
+	  	list(
+		    Organisation="Home",
+		    Project="TimeBox",
+		    Groups=list(Group1="Feature", Group2="Function", Group3="Implementation")
+	        ),
+	        list(
+		    Organisation="Home",
+		    Project="Testing123"
+	        )
+	    ),
+	    # For now only one source at time
+	    Source=list(
+		    CSVfile="TimeBox.csv",
+		    Mapping=NA
+	    ),
+	    Status=c("Idea", "Backlog", "Next", "Waiting", "InProgress", "Weekly", "Completed", NA)
+	)
      }
 
      SaveConfig <- function ()
      {
 	# First check that the file exists and produce an error otherwise
-	write.csv(Config, file="Config.csv", row.names=FALSE) 
      }
 
      SaveTasks <- function (Organisation="*", Project="*", Group="*", Task="*")
@@ -243,7 +237,7 @@ cat("Time management in R for busy people\n")
 	write.csv(SelectTasks(Organisation, Project, Group, Task), file="Task List.csv", row.names=FALSE)
      }
 
-     LoadTasks <- function (CSVfile="Task List.csv")
+     LoadTasks <- function (CSVfile=Config$Source$CSVfile)
      {
 	# First check that the file exists and produce an error otherwise
 	tryCatch(
@@ -258,7 +252,8 @@ cat("Time management in R for busy people\n")
 		# Pull this from the Project configuration list and standard default values
 	        T$Urgency <- factor(T$Urgency, levels=c("High","Low",NA))
 	        T$Importance <- factor(T$Importance, levels=c("High","Low",NA))
-	        T$Status <- factor(T$Status, levels=c("Idea","Backlog","Next","InProgress","Completed","Waiting", "Weekly", NA))
+	        #T$Status <- factor(T$Status, levels=c("Idea","Backlog","Next","InProgress","Completed","Waiting", "Weekly", NA))
+	        T$Status <- factor(T$Status, levels=c(Config$Status))
 	        IndexTasks(T) 
 	    },
 	    error = function(e) {
@@ -613,7 +608,7 @@ cat("Time management in R for busy people\n")
      #library(corrplot)
      #library(psych)
 
-     # LoadConfig() -> Config
+     LoadConfig() -> Config
 
 # b) Load dataset
 
