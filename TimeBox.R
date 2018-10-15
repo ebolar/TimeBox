@@ -2,9 +2,11 @@
 # Time Box - planner and task tracker
 # ===================================================================
 # Time management in R for busy people, and a good excuse for me to 
-# learn more about R.
+# learn moue about R.
 # 
 # :) (Am I wasting time here?) :)
+#   (What am I doing this for? This is an insecurity. 
+#   There are plenty of simpler ways to manage my time.)
 # 
 # The set of routines are a bit of a dogs breakfast.  
 # Can I clean these up, 
@@ -30,10 +32,9 @@
 # 2.   Time Box
 # 2.1   Task repository - Sources (& Sinks)
 #  o LoadConfig() {ConfigurationFile} -> {ConfigurationFile x Configuration}
-#  o SaveConfig() {Configuration} -> {ConfigurationFile x Configuration}
+#  . SaveConfig() {Configuration} -> {ConfigurationFile x Configuration}
 #  o LoadTasks(Source) -> {Source x Tasks}
-#  o SaveTasks(Selection) {Source x Tasks} -> {Source x Tasks}
-#  . SaveTasks(Source, Selection) {Tasks} -> {Source x Tasks}
+#  o SaveTasks(Selection, Source) {Tasks} -> {Source x Tasks}
 #  . SaveTasks(Source, Tasks) -> {Source x Tasks}
 #  o EmptyTasks() -> Tasks "Dataframe is empty.  Data types for all fields are configured"
 #  o IndexTasks(Tasks) -> IndexedTasks "Internal index numbers reset"
@@ -67,12 +68,12 @@
 #  )
 #  UI
 #  
-#  
-# 2.2.3   Sources (& Sinks)
-# 2.2.4   Projects
+# 2.2.3   Projects
 # 
 # 2.3   User Interfaces
 # 2.3.1   R functions
+#  . PrintColumn(Column) -> FormattedColumn	
+#  . CalculatePriority(Task) -> Priority
 # 2.3.2   R Text based menu
 #  . Simple menu
 # 2.3.3   Rscript Text based menu
@@ -122,8 +123,10 @@ cat("Time management in R for busy people\n")
      
      TB <- "TimeBox.R"
 
-     rerun <- function ()
+     rerun <- function (save=TRUE)
      {
+	     if (save) SaveTasks()
+
 	     source(TB)
      }
      
@@ -173,19 +176,30 @@ cat("Time management in R for busy people\n")
      # Display as a fixed width field, truncating or padding as required.
      # Requires library stringr
      str_field <- function (string, width=1, side="right") {
-	if(nchar(as.character(string)) < width) 
-	   nchar(as.character(string)) -> l
-	else
-	   width -> l
+	Field = data.frame()
+        print(string)
+	 
+	XXX busted XXX
+
+	for (row in string) {
+	    string[row] -> s
+	    print(string[row])
+	    if (is.na(s)) "<NA>" -> s
+
+	    if(nchar(s) < width) 
+	        nchar(s) -> l
+	    else
+	        width -> l
 	
-	return(str_pad(substr(string,1,l), width=width, side=side))
+	    rbind(Field, str_pad(substr(s,1,l), width=width, side=side))
+	}
+	return(str_pad(substr(s,1,l), width=width, side=side))
      }
      
-     # Wrap(String, Width) -> StringList (or other data type?)
+     # Wrap(String, Width) -> String (vector)
 
      # ===================================================================
      # 2.   Time Box
-     
      # 2.1   Task repository
      # ===================================================================
      # 2.1.1   CSV
@@ -200,7 +214,8 @@ cat("Time management in R for busy people\n")
      # - Can push reminders to your calendar
      #
 
-     #  o LoadConfig() {ConfigurationFile} -> {ConfigurationFile x Configuration}
+     #  . LoadConfig() {ConfigurationFile} -> {ConfigurationFile x Configuration}
+     #  o LoadConfig() {StaticConfiguration} -> {Configuration}
      LoadConfig <- function ()
      {
 	# A temporary measure until I can store and retrieve from a file
@@ -218,7 +233,7 @@ cat("Time management in R for busy people\n")
 		    Project="Testing123"
 	        )
 	    ),
-	    # For now only one source at time
+	    # For now only one source
 	    Source=list(
 		    CSVfile="TimeBox.csv",
 		    Mapping=NA
@@ -232,14 +247,13 @@ cat("Time management in R for busy people\n")
 	# First check that the file exists and produce an error otherwise
      }
 
-     SaveTasks <- function (Organisation="*", Project="*", Group="*", Task="*")
+     SaveTasks <- function (Organisation="*", Project="*", Group="*", Task="*", CSVfile=Config$Source$CSVfile)
      {
-	write.csv(SelectTasks(Organisation, Project, Group, Task), file="Task List.csv", row.names=FALSE)
+	write.csv(SelectTasks(Organisation, Project, Group, Task), file=CSVfile, row.names=FALSE)
      }
 
      LoadTasks <- function (CSVfile=Config$Source$CSVfile)
      {
-	# First check that the file exists and produce an error otherwise
 	tryCatch(
 	    {
 	        read.csv(CSVfile, header=TRUE, stringsAsFactors=FALSE) -> T
@@ -252,8 +266,11 @@ cat("Time management in R for busy people\n")
 		# Pull this from the Project configuration list and standard default values
 	        T$Urgency <- factor(T$Urgency, levels=c("High","Low",NA))
 	        T$Importance <- factor(T$Importance, levels=c("High","Low",NA))
-	        #T$Status <- factor(T$Status, levels=c("Idea","Backlog","Next","InProgress","Completed","Waiting", "Weekly", NA))
-	        T$Status <- factor(T$Status, levels=c(Config$Status))
+		T[T$Urgency=="High" & T$Importance=="High" & !(is.na(T$Urgency)) & !(is.na(T$Importance)), "Priority"] <- "To do"
+		T[T$Urgency=="Low" & T$Importance=="High" & !(is.na(T$Urgency)) & !(is.na(T$Importance)), "Priority"] <- "Plan/Schedule"
+		T[T$Urgency=="High" & T$Importance=="Low" & !(is.na(T$Urgency)) & !(is.na(T$Importance)), "Priority"] <- "Delegate"
+		T[T$Urgency=="Low" & T$Importance=="Low" & !(is.na(T$Urgency)) & !(is.na(T$Importance)), "Priority"] <- "Recreation"
+	        T$Status <- ordered(T$Status, levels=c(Config$Status))
 	        IndexTasks(T) 
 	    },
 	    error = function(e) {
@@ -285,7 +302,9 @@ cat("Time management in R for busy people\n")
 	    if (nrow(T) > 0)
 	        for (row in 1:nrow(T))
 	            row -> T$ID[row]
-	} else if (C == "character")
+	} 
+	# Interesting but do I really need this?
+	else if (C == "character")
 	{
 	   if (NROW(T) > 0)
 	       for (row in 1:NROW(T))
@@ -310,7 +329,7 @@ cat("Time management in R for busy people\n")
 	      Urgency=factor(levels=c("High", "Low", NA)),
 	      Importance=factor(levels=c("High", "Low", NA)),
 	      Effort=character(),
-	      Status=factor(levels=c("Idea","Backlog","Next","InProgress","Completed",NA)),
+	      Status=ordered(character(),levels=c(Config$Status)),
 	      Who=character(),
 	      DateAssigned=character(),
 	      DateStarted=character(),
@@ -374,10 +393,24 @@ cat("Time management in R for busy people\n")
 # -------------------------------------------------------------------
 # 2.3 User Interfaces
 # 2.3.1 R functions
+# Is there a way to define the fields for a Task through configuration?
+# How do you deal with changes in the format of a task list?
+#
+#  . FormatColumn(Task, Column) -> FormattedColumn	
+     FormatColumn <- function(Task, Column) {
+	if (Column == "ID") return (str_pad(paste("[",Task$ID,"]", sep=""),7))
+	if (Column == "Task") return (str_field(Task$Task,30, side="right"))
+	if (Column == "Status") return (paste("[",str_field(Task$Status, width=8, side="both"),"]", sep=""))
+	if (Column == "Who") return (str_field(Task$Who, width=8, side="left"))
+	if (Column == "DateDue") return (str_field(Task$DateDue, width=8, side="right"))
+	if (Column == "Description") return (paste("\"",str_field(Task$Description,60, side="right"),"\"", sep=""))
 
-     # Is there a way to define the fields for a Task through configuration?
-     # How do you deal with changes in the format of a task list?
-     #
+	warning(sprintf("Unknown : Column=\"%s\"", Column))
+	return (character())
+     }
+#
+#  . CalculatePriority(Task) -> Priority
+#
      CaptureTask <- function(Organisation="", Project="")
      {
         # Select & Validate the project
@@ -432,6 +465,106 @@ cat("Time management in R for busy people\n")
 	  )
      }
 
+     # Universal task capture and update
+     EditTasks <- function(Tasks=EmptyTasks())
+     {
+	data.frame() -> T
+
+	for (row in 0:NROW(Tasks)) {     
+	    if (row == 0) {
+		ID=character()
+		Organisation=character()
+		Project=character()
+		Group1=character()
+		Group2=character()
+		Group3=character()
+		Task=character()
+		Description=character()
+		Priority=character()
+		Urgency=factor(levels=c("High", "Low", NA))
+		Importance=factor(levels=c("High", "Low", NA))
+		Effort=character()
+		Status=ordered(character(),levels=c(Config$Status))
+		Who=character()
+		DateAssigned=character()
+		DateStarted=character()
+		DateCompleted=character()
+		DateDue=character()
+	    } else {
+		ID=Tasks$ID[row]
+		Organisation=Tasks$Organisation[row]
+		Project=Tasks$Project[row]
+		Group1=Tasks$Group1[row]
+		Group2=Tasks$Group2[row]
+		Group3=Tasks$Group3[row]
+		Task=Tasks$Task[row]
+		Description=Tasks$Description[row]
+		Priority=Tasks$Priority[row]
+		Urgency=Tasks$Urgency[row]
+		Importance=Tasks$Importance[row]
+		Effort=Tasks$Effort[row]
+		Status=Tasks$Status[row]
+		Who=Tasks$Who[row]
+		DateAssigned=Tasks$DateAssigned[row]
+		DateStarted=Tasks$DateStarted[row]
+		DateCompleted=Tasks$DateCompleted[row]
+		DateDue=Tasks$DateDue[row]
+	    }
+
+            # Select & Validate the project
+	    GetInput(prompt=sprintf("Organisation [%s] : ", Organisation), default=Organisation) -> Organisation
+	    GetInput(prompt=sprintf("Project      [%s] : ", Project), default=Project) -> Project
+
+	    (Tasks$Organisation==Organisation & Tasks$Project==Project) -> rows
+	    print(unique(sort(paste(Tasks$Group1[rows],Tasks$Group2[rows],Tasks$Group3[rows], sep="-"))))
+	    cat("\n")
+
+	    # Variable names for the following groups based on the project type
+	    GetInput(prompt=sprintf("Group1      [%s] : ", Group1), default=Group1) -> Group1
+	    GetInput(prompt=sprintf("Group2      [%s] : ", Group2), default=Group2) -> Group2
+	    GetInput(prompt=sprintf("Group3      [%s] : ", Group3), default=Group3) -> Group3
+	
+	    # What needs to be done
+	    GetInput(prompt=sprintf("Task        [%s] : ", Task), default=Task) -> Task
+	    # OK I need a print function for each column
+	    GetInput(prompt=sprintf("Description [%s] : ", Description), default=Description) -> Description
+
+	    # Priority could be derived.  Some people may want to enter it.
+	    GetInput(prompt=sprintf("Urgency     [%s] : ", Urgency), default=Urgency) -> Urgency
+	    GetInput(prompt=sprintf("Importance  [%s] : ", Importance), default=Importance) -> Importance
+	    GetInput(prompt=sprintf("Effort      [%s] : ", Effort), default=Effort) -> Effort
+	     
+	    # Can we derive the status?  How do we ensure that only the valid status types are entered.
+	    GetInput(prompt=sprintf("Status      [%s] : ", Status), default=Status) -> Status
+	    GetInput(prompt=sprintf("Who         [%s] : ", Who), default=Who) -> Who
+	    GetInput(prompt=sprintf("Due Date    [%s] : ", DateDue), default=DateDue) -> DateDue
+
+	    rbind(T, data.frame(
+	            ID=ID,
+	            Organisation=Organisation,
+	            Project=Project,
+	            Group1=Group1,
+	            Group2=Group2,
+	            Group3=Group3,
+	            Task=Task,
+	            Description=Description,
+	            Priority=Priority,
+	            Urgency=Urgency,
+	            Importance=Importance,
+	            Effort=Effort,
+	            Status=Status,
+	            Who=Who,
+	            DateAssigned=DateAssigned,
+	            DateStarted=DateStarted,
+	            DateCompleted=DateCompleted,
+	            DateDue=DateDue,
+	            stringsAsFactors=FALSE
+	        )
+	    )
+     }
+	return(T)
+     }
+
      NewTask <- function(Organisation="", Project="")
      {
    	CaptureTask(Organisation, Project) -> T
@@ -457,9 +590,6 @@ cat("Time management in R for busy people\n")
 	if (paginate) 
 	    sink(file=".Tasks.ListTasks", type="output")
 
-	sprintf("Project %s, Group %s, Status (%s), show=%s\n", toString(Project), toString(Group), toString(Status), toString(show)) -> Selection
-	# cat(sprintf("Listing tasks for %s\n", Selection))
-	
 	# Filter out the entries we want
 	#   by Project and group
 	SelectTasks(Organisation, Project, Group) -> T1
@@ -492,9 +622,10 @@ cat("Time management in R for busy people\n")
 	    	    }
 
 		    cat(sprintf("    %s %s\n", str_pad(paste("[",T$ID[row],"]", sep=""),7), T$Task[row]))
+		    # Nice to have a formatted description - multiple rows and word wrapped.
 		    cat(sprintf("            \"%s\"\n", T$Description[row]))
 		    cat(sprintf("            Status [%s]", T$Status[row]))
-		    cat(sprintf(", Priority [%s/%s]", T$Urgency[row], T$Importance[row]))
+		    cat(sprintf(", Priority [%s]", T$Priority[row]))
 		    cat(sprintf(", Assigned to: %s. Due: %s\n", T$Who[row], T$DateDue[row]))
 		}
 	} else if (show == "Summary") {
@@ -519,10 +650,12 @@ cat("Time management in R for busy people\n")
 	    	        cat(sprintf("    %s-%s-%s\n", T$Group1[row], T$Group2[row], T$Group3[row]))
 	    	    }
 
-		    cat(sprintf("     %s %s %s %s\n", 
+		    cat(sprintf("     %s %s %s %s %s\n", 
 		       str_pad(paste("[",T$ID[row],"]", sep=""),7), 
-		       str_field(T$Task[row],40, side="right"), 
+		       str_field(T$Task[row],30, side="right"), 
 		       paste("[",str_field(T$Status[row], width=8, side="both"),"]", sep=""), 
+		       paste("[",str_field(T$Who[row], width=8, side="left"), ":", 
+			     str_field(T$DateDue[row], width=8, side="right"), "]",sep=""), 
 		       paste("\"",str_field(T$Description[row],60, side="right"),"\"", sep="")))
 		}
 	} else if (show == "List") {
@@ -530,10 +663,24 @@ cat("Time management in R for busy people\n")
 
 	    if (nrow(T) > 0) 
 	        for (row in Index) {
-	            # cat(str_field(sprintf("<%s/%s %s-%s-%s>", T$Organisation[row], T$Project[row], T$Group1[row], T$Group2[row], T$Group3[row]),35))
-	            cat(sprintf("%s", str_pad(paste("[",T$ID[row],"]", sep=""),7)))
-	            cat(str_field(sprintf("%s", T$Project[row]),15, side="left"))
-	            cat(sprintf(" : %s [%s] \"%s\"\n", str_field(T$Task[row],30), str_pad(T$Status[row], 7), str_field(T$Description[row],50)))
+	            cat(sprintf("%s %s : %s %s %s %s\n", 
+	            		str_pad(paste("[",T$ID[row],"]", sep=""),7),
+				str_field(T$Project[row], 15, side="left"),
+		       		str_field(T$Task[row],30, side="right"), 
+				paste("[",str_field(T$Status[row], width=8, side="both"),"]", sep=""), 
+				str_field(T$Priority[row], width=10, side="both"), 
+		       		paste("\"",str_field(T$Description[row],60, side="right"),"\"", sep="")))
+		}
+	} else if (show == "ShortList") {
+	    SortTasks(T, orderBy="Status") -> Index
+
+	    if (nrow(T) > 0) 
+	        for (row in Index) {
+	            cat(sprintf("%s %s : %s %s\n", 
+	            		str_pad(paste("[",T$ID[row],"]", sep=""),7),
+				str_field(T$Project[row], 15, side="left"),
+		       		str_field(T$Task[row],30, side="right"), 
+		       		paste("\"",str_field(T$Description[row],60, side="right"),"\"", sep="")))
 		}
 	} else {
 	    warning(sprintf("Unknown : show=\"%s\"", show))
@@ -541,6 +688,7 @@ cat("Time management in R for busy people\n")
 
 	if (paginate) {
 	   sink()
+	   sprintf("Project %s, Group %s, Status (%s), show=%s\n", toString(Project), toString(Group), toString(Status), toString(show)) -> Selection
 	   file.show(file=".Tasks.ListTasks", delete.file=TRUE, title=sprintf("Listing tasks for %s", Selection))
 	}
      }
@@ -587,11 +735,10 @@ cat("Time management in R for busy people\n")
 	ListTasks(Organisation=Organisation, Project=Project, Group=Group, Status="Waiting", show="List", paginate=FALSE)
 	cat("\nToDo\n")
 	cat("===================================================\n")
-	ListTasks(Organisation=Organisation, Project=Project, Group=Group, Status="Weekly", show="List", paginate=FALSE)
-	ListTasks(Organisation=Organisation, Project=Project, Group=Group, Status="InProgress", show="Full", paginate=FALSE)
+	ListTasks(Organisation=Organisation, Project=Project, Group=Group, Status=c("Weekly", "InProgress"), show="Summary", paginate=FALSE)
 	cat("\nCompleted\n")
 	cat("===================================================\n")
-	ListTasks(Organisation=Organisation, Project=Project, Group=Group, Status="Complete", show="List", paginate=FALSE)
+	ListTasks(Organisation=Organisation, Project=Project, Group=Group, Status="Complete", show="ShortList", paginate=FALSE)
 
 	if (paginate) {
 	   sink()
