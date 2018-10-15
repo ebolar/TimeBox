@@ -5,8 +5,7 @@
 # learn moue about R.
 # 
 # :) (Am I wasting time here?) :)
-#   (What am I doing this for? This is an insecurity. 
-#   There are plenty of simpler ways to manage my time.)
+#   (What am I doing this for? There are plenty of simpler ways to manage my time.)
 # 
 # The set of routines are a bit of a dogs breakfast.  
 # Can I clean these up, 
