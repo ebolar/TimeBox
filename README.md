@@ -2,7 +2,7 @@
 Time keeping in R.  Making it easy to track shit and get shit done
 
 
-[Thoughts on Time management]
+Thoughts on Time management
 
 TR - RPM technique
   - there is a bucket with the backlog.  You will never get it all done - its purpose is to get stuff out of your head
