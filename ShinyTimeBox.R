@@ -64,7 +64,7 @@ TimeBoxUI <- tagList(
           actionButton("Reset.IdeaButton", "Reset")
         ),
         mainPanel(
-          verbatimTextOutput('Display.IdeaSelected'),
+#          verbatimTextOutput('Display.IdeaSelected'),
           dataTableOutput('Display.Idea')
         )
       )
@@ -223,6 +223,12 @@ TimeBoxServer <- function(input, output, session) {
 
     if (length(selected) > 0) {
       Datasource.Read(Env, "Idea") -> rows
+      
+      if (Env$traceUI) {
+        cat(sprintf("XXX - Removing %d rows\n", length(selected)))
+        print(rows[selected,])
+      }
+
       rows[-selected,] -> rows
       Datasource.Replace(Env, "Idea", rows)
     }
@@ -534,7 +540,7 @@ TimeBoxServer <- function(input, output, session) {
     if (Env$traceUI) cat(sprintf("XXX - Archive.all button - %d\n", input$Archive.all))
 
     # Update the sync call to save to another source
-    Datasource.Sync(Env, "Archive")
+    Datasource.Sync(Env, paste("Archive",Sys.Date(), sep = "-"))
   })
 
 

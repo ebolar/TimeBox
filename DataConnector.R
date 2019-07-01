@@ -64,7 +64,7 @@ Datasource.New <- function(e) {
 
 # Datasource.Init x Environment -> Environment
 # - Add an identification tag - XXX is default
-Datasource.Init <- function(e) {
+Datasource.Init <- function(e, ID=e$ID) {
   if (e$traceData == TRUE) cat("FN - Datasource.Init(e)\n")
   
   new.env(parent = emptyenv()) -> e$Cache
@@ -73,10 +73,10 @@ Datasource.Init <- function(e) {
   if (e$sourcetype == "default") {
     tryCatch(
       {
-        read.csv(file="XXX-Idea.csv", stringsAsFactors = FALSE) -> e$Cache$Idea
-        read.csv(file="XXX-Bucket.csv", stringsAsFactors = FALSE) -> e$Cache$Bucket
-        read.csv(file="XXX-Task.csv", stringsAsFactors = FALSE) -> e$Cache$Task
-        read.csv(file="XXX-Work.csv", stringsAsFactors = FALSE) -> e$Cache$Work
+        read.csv(file=paste(ID,"Idea.csv", sep="-"), stringsAsFactors = FALSE) -> e$Cache$Idea
+        read.csv(file=paste(ID,"Bucket.csv", sep="-"), stringsAsFactors = FALSE) -> e$Cache$Bucket
+        read.csv(file=paste(ID,"Task.csv", sep="-"), stringsAsFactors = FALSE) -> e$Cache$Task
+        read.csv(file=paste(ID,"Work.csv", sep="-"), stringsAsFactors = FALSE) -> e$Cache$Work
       },
       error = function(e) {
         if (grepl("no lines available in input", e$message))
@@ -100,15 +100,15 @@ Datasource.Init <- function(e) {
 }
 
 # - Add an identification tag - XXX is default
-Datasource.Close <- function(e) {
+Datasource.Close <- function(e, ID=e$ID) {
   if (e$traceData == TRUE) cat("FN - Datasource.Close(e)\n")
 
   # Save all tables in the cache
   if (e$sourcetype == "default") {
-    write.csv(e$Cache$Idea, file="XXX-Idea.csv", row.names = FALSE)
-    write.csv(e$Cache$Bucket, file="XXX-Bucket.csv", row.names = FALSE)
-    write.csv(e$Cache$Task, file="XXX-Task.csv", row.names = FALSE)
-    write.csv(e$Cache$Work, file="XXX-Work.csv", row.names = FALSE)
+    write.csv(e$Cache$Idea, file=paste(ID,"Idea.csv", sep="-"), row.names = FALSE)
+    write.csv(e$Cache$Bucket, file=paste(ID,"Bucket.csv", sep="-"), row.names = FALSE)
+    write.csv(e$Cache$Task, file=paste(ID,"Task.csv", sep="-"), row.names = FALSE)
+    write.csv(e$Cache$Work, file=paste(ID,"Work.csv", sep="-"), row.names = FALSE)
   }
   
   # Destroy the cache
