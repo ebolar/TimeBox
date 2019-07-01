@@ -4,7 +4,7 @@ Time keeping in R.  Making it easy to track shit and get shit done
 
 Thoughts on Time management
 
-Ref Tony Robbins - RPM technique
+I am extending the _Tony Robbins - RPM technique_ to cover other adjacent tasks (eg timekeeping)
   - there is a bucket with the backlog.  You will never get it all done - its purpose is to get stuff out of your head
   - categorise the backlog.  What are the main themes.
   - what are your priorities
@@ -13,14 +13,15 @@ Ref Tony Robbins - RPM technique
  (this is a bit like a sales funnel)
 
  How do you refine the information at each step.
- Thoughts	
+ Thoughts
  - This is what I do for work with project teams.  Building a strategy and developing a business case.  Can be applied to individuals as well.	
  - This structure provides a cleaner breakdown of the different information and functionality required.
- - Is it possible to build a single integrated interface over the top of all three functions.
+ - Is it possible to build a single integrated interface over the top of all functions.
  - It would be great if the tool could be re-badged for different approaches (eg Agile)
  
  Brain Dump	
  - Rapid capture of ideas.  Index + title + notes/drawings.	
+ - this is a way to capture notes which you may organise or action later.
  - Can get ideas into the brain dump in a number of ways, eg email, spreadsheet, .	
  
  Strategiser / Funnel
@@ -39,3 +40,7 @@ Ref Tony Robbins - RPM technique
  - Contain a link to the strategy item which provides structure for the Time Box.  	
  - Can add tasks and activities when it goes into the ToDo list.  Breakdown the features (or "stories" or .) into discrete units of work	
  
+ Work tracker
+ - What did you do?
+ - Use the ToDo list to create a 'Bundy clock' that can keep you focussed, and also track your time.
+ - Extract from this to create daily timesheets.
