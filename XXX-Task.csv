@@ -1,5 +1,11 @@
-"Name","Description","Bucket","Status","Today"
-"Watch TV","GOT time","Recreation","ToDo",TRUE
-"Wash dishes","In the dishwasher","Home-Chores","ToDo",TRUE
-"Wash car","Neighbourhood water fight","Home-Maintenance","Backlog",FALSE
-"Mow lawn","Only the front lawn","Home-Maintenance","ToDo",FALSE
+"Name","Description","Bucket","Status","Today","CreatedAt","LastUpdate"
+"Setup SIM card in my laptop","",NA,NA,FALSE,"2019-07-01 10:20:54","2019-07-01 10:20:54"
+"TimeBox buttons","* Buttons above the menu
+* Load/Save
+* Archive.  Enter a tag and saves as <tag>-... instead of XXX-...",NA,NA,FALSE,"2019-06-30 23:00:21","2019-06-30 23:00:21"
+"Updates","Build a simple update function",NA,NA,FALSE,"2019-06-30 21:29:38","2019-06-30 21:29:38"
+"Tasks page","* Add the bucket list.
+* Find a way to update the Status - what are the valid values?
+* How do I select and/or reset the Today list?",NA,NA,FALSE,"2019-06-30 21:28:59","2019-06-30 21:28:59"
+"Mow the lawn","Whipper snipper front and back
+Mow the front lawn",NA,NA,FALSE,"2019-06-30 20:59:43","2019-06-30 20:59:43"

@@ -31,6 +31,129 @@ Table.Select <- function(Table, Selection=data.frame()) {
 # Sort x Table -> Rows
 #
 
+# Constructors
+# -------------------------------------------------------------------
+Idea <- function(Name=character(), Notes=character(), Bucket=character(), CreatedAt=integer(), LastUpdate=integer()) {
+  # - Name
+  # - Notes
+  # + Bucket
+
+  if (length(Name) > 0 || length(Notes) > 0 || length(Bucket) > 0 || length(CreatedAt) > 0 || length(LastUpdate) > 0) {
+    if (length(Name) == 0) "" -> Name
+    if (length(Notes) == 0) "" -> Notes
+    if (length(Bucket) == 0) "" -> Bucket
+    if (length(CreatedAt) == 0) Sys.time() -> CreatedAt
+    if (length(LastUpdate) == 0) Sys.time() -> LastUpdate
+  }  
+  data.frame(
+    Name=Name,
+    Notes=Notes,
+    Bucket=Bucket,
+    CreatedAt=CreatedAt,
+    LastUpdate=LastUpdate,
+    stringsAsFactors = FALSE
+  )
+}
+
+Bucket <- function(Name=character(), Description=character(), ChargeTo=character(), CreatedAt=integer(), LastUpdate=integer()) {
+  # Bucket / General classification from Strategy
+  # - Name = Bucket-Project-ScopeItem-etc.  Only make this as deep as necessary to capture uniqueness.
+  # - Description
+  # - ChargeTo
+
+  if (length(Name) > 0 || length(Description) > 0 || length(ChargeTo) > 0 || length(CreatedAt) > 0 || length(LastUpdate) > 0) {
+    if (length(Name) == 0) "" -> Name
+    if (length(Description) == 0) "" -> Description
+    if (length(ChargeTo) == 0) "" -> ChargeTo
+    if (length(CreatedAt) == 0) Sys.time() -> CreatedAt
+    if (length(LastUpdate) == 0) Sys.time() -> LastUpdate
+  }  
+  data.frame(
+    Name=Name,
+    Description=Description,
+    ChargeTo=ChargeTo,
+    CreatedAt=CreatedAt,
+    LastUpdate=LastUpdate,
+    stringsAsFactors = FALSE
+  )
+}
+
+Task <- function(Name=character(), Description=character(), Bucket=character(), Status=character(), Today=logical(), CreatedAt=integer(), LastUpdate=integer()) {
+  # Task - ToDo list
+  # - Name = task-subtask-subtask-
+  # - Description
+  # + Bucket
+  # - Status
+
+  if (length(Name) > 0 || length(Description) > 0 || length(Bucket) > 0 || length(Status) > 0 || length(CreatedAt) > 0 || length(LastUpdate) > 0) {
+    if (length(Name) == 0) "" -> Name
+    if (length(Description) == 0) "" -> Description
+    if (length(Bucket) == 0) "" -> Bucket
+    if (length(Status) == 0) "" -> Status
+    if (length(Today) == 0) FALSE -> Today
+    if (length(CreatedAt) == 0) Sys.time() -> CreatedAt
+    if (length(LastUpdate) == 0) Sys.time() -> LastUpdate
+  }  
+  data.frame(
+    Name=Name,
+    Description=Description,
+    Bucket=Bucket,
+    Status=Status,
+    Today=Today,
+    CreatedAt=CreatedAt,
+    LastUpdate=LastUpdate,
+    stringsAsFactors = FALSE
+  )
+}
+
+Work <- function(Date=integer(), Duration=integer(), Task=character(), ChargeTo=character()) {
+  # Work - timesheet information
+  # - Date
+  # - Duration
+  # + Task
+  # . ChargeTo - from Bucket
+
+  if (length(Date) > 0 || length(Duration) > 0 || length(Task) > 0 || length(ChargeTo) > 0) {
+    if (length(Date) == 0) Sys.time() -> Date
+    if (length(Duration) == 0) 0 -> Duration
+    if (length(Task) == 0) "" -> Task
+    if (length(ChargeTo) == 0) "" -> ChargeTo
+  }  
+  data.frame(
+    Date=Date,
+    Duration=Duration,
+    Task=Task,
+    ChargeTo=ChargeTo,
+    stringsAsFactors = FALSE
+  )
+}
+
+format.Idea <- function(idea=Idea()) {
+  # - Name
+  # - Notes
+  # + Bucket
+  data.frame(Name=idea$Name, Notes=idea$Notes, Bucket=idea$Bucket) 
+}
+
+format.Bucket <- function(bucket=Bucket()) {
+  # - Name = Bucket-Project-ScopeItem-etc.  Only make this as deep as necessary to capture uniqueness.
+  # - Description
+  # - ChargeTo
+  data.frame(Name=bucket$Name, Description=bucket$Description, ChargeTo=bucket$ChargeTo)
+}
+
+format.Task <- function(task=Task()) {
+  # - Name = task-subtask-subtask-
+  # - Description
+  # + Bucket
+  # - Status
+  data.frame(Name=task$Name, Description=task$Description, Bucket=task$Bucket, Status=task$Status)
+}
+
+format.Work <- function(work=Work()) {
+  work
+}
+
 # Testing
 # -------------------------------------------------------------------
 FALSE -> testing

@@ -25,15 +25,24 @@
 #
 # Configuration.Init -> Environment
 Configuration.Init <- function() {
-  new.env() -> e
+  if (FALSE) cat("FN - Configuration.Init() -> e\n")
+  
+  new.env(parent = emptyenv()) -> e
   # Default static configuration
   "-" -> e$cfg
   "default" -> e$sourcetype
+  FALSE -> e$traceData
+  TRUE -> e$traceUI
+  TRUE -> e$testing
+  "XXX" -> e$ID
+  
   return(e)
 }
 
 # Configuration.Close x Environment ->
 Configuration.Close <- function(e) {
+  cat(sprintf("FN - Configuration.Close(%s)\n", e))
+  
   # Destroy the Environment - when I work out how to do this
   rm(list=e, pos = parent.env(environment()))
 }
@@ -43,62 +52,22 @@ Configuration.Close <- function(e) {
 # Datasource.New x Environment -> Environment
 # Create an empty set of data sources
 Datasource.New <- function(e) {
-  new.env() -> e$Cache
+  if (e$traceData == TRUE) cat("FN - Datasource.New(e)\n")
+
+  new.env(parent = emptyenv()) -> e$Cache
   
-  # Idea
-  # - Name
-  # - Notes
-  # + Bucket
-  data.frame(
-    Name=character(),
-    Notes=character(),
-    Bucket=character(),
-    stringsAsFactors = FALSE
-  ) -> e$Cache$Idea
-  
-  # Bucket / General classification from Strategy
-  # - Name = Bucket-Project-ScopeItem-etc.  Only make this as deep as necessary to capture uniqueness.
-  # - Description
-  # - ChargeTo
-  data.frame(
-    Name=character(),
-    Description=character(),
-    ChargeTo=character(),
-    stringsAsFactors = FALSE
-  ) -> e$Cache$Bucket
-  
-  # Task - ToDo list
-  # - Name = task-subtask-subtask-
-  # - Description
-  # + Bucket
-  # - Status
-  data.frame(
-    Name=character(),
-    Description=character(),
-    Bucket=character(),
-    Status=factor(levels=c("Backlog", "ToDo", "Done", NA)),
-    Today=logical(),
-    stringsAsFactors = FALSE
-  ) -> e$Cache$Task
-  
-  # Work - timesheet information
-  # - Date
-  # - Duration
-  # + Task
-  # . ChargeTo - from Bucket
-  data.frame(
-    Name=character(),
-    Description=character(),
-    Date=character(),
-    Duration=character(),
-    ChargeTo=character(),
-    stringsAsFactors = FALSE
-  ) -> e$Cache$Work
+  Idea() -> e$Cache$Idea
+  Bucket() -> e$Cache$Bucket
+  Task() -> e$Cache$Task
+  Work() -> e$Cache$Work
 }
 
 # Datasource.Init x Environment -> Environment
+# - Add an identification tag - XXX is default
 Datasource.Init <- function(e) {
-  new.env() -> e$Cache
+  if (e$traceData == TRUE) cat("FN - Datasource.Init(e)\n")
+  
+  new.env(parent = emptyenv()) -> e$Cache
   # Load all tables from the configuration into the cache
 
   if (e$sourcetype == "default") {
@@ -130,7 +99,10 @@ Datasource.Init <- function(e) {
   }
 }
 
+# - Add an identification tag - XXX is default
 Datasource.Close <- function(e) {
+  if (e$traceData == TRUE) cat("FN - Datasource.Close(e)\n")
+
   # Save all tables in the cache
   if (e$sourcetype == "default") {
     write.csv(e$Cache$Idea, file="XXX-Idea.csv", row.names = FALSE)
@@ -143,19 +115,24 @@ Datasource.Close <- function(e) {
   rm(Cache, pos = e)
 }
 
-Datasource.Sync <- function(e) {
+# - Add an identification tag - XXX is default
+Datasource.Sync <- function(e, ID=e$ID) {
+  if (e$traceData == TRUE) cat("FN - Datasource.Sync(e)\n")
+  
   # Save all tables in the cache
   if (e$sourcetype == "default") {
-    write.csv(e$Cache$Idea, file="XXX-Idea.csv", row.names = FALSE)
-    write.csv(e$Cache$Bucket, file="XXX-Bucket.csv", row.names = FALSE)
-    write.csv(e$Cache$Task, file="XXX-Task.csv", row.names = FALSE)
-    write.csv(e$Cache$Work, file="XXX-Work.csv", row.names = FALSE)
+    write.csv(e$Cache$Idea, file=paste(ID,"Idea.csv", sep="-"), row.names = FALSE)
+    write.csv(e$Cache$Bucket, file=paste(ID,"Bucket.csv", sep="-"), row.names = FALSE)
+    write.csv(e$Cache$Task, file=paste(ID,"Task.csv", sep="-"), row.names = FALSE)
+    write.csv(e$Cache$Work, file=paste(ID,"Work.csv", sep="-"), row.names = FALSE)
   }
 }
 
 # Hm.. Don't write these until I need them.
 # Datasource.Read x Env x Table x filter -> Table<dataframe>
 Datasource.Read <- function(e, table) {
+  if (e$traceData == TRUE) cat(sprintf("FN - Datasource.read(e, %s)\n", table))
+
   if(!exists("Cache", e))
     stop(sprintf("Datasource not connected"))
 
@@ -181,12 +158,15 @@ Datasource.Read <- function(e, table) {
 # Datasource.Add x Env x Table x Rows
 # - adds Rows to the table
 Datasource.Add <- function(e, table, rows) {
+  if (e$traceData == TRUE) cat(sprintf("FN - Datasource.Add(e, %s, rows)\n", table))
+  #print(rows)
+  
   if(!exists("Cache", e))
     stop(sprintf("Datasource not connected"))
   
   if(!exists(table, e$Cache)) {
     stop(sprintf("No such table \"%s\"", table))}
-  
+
   if(table == "Idea") 
     rbind(rows, e$Cache$Idea) -> e$Cache$Idea
   else if(table == "Bucket") 
@@ -202,6 +182,8 @@ Datasource.Add <- function(e, table, rows) {
 # Datasource.Replace x Env x Table x Rows
 # - replaces the whole table with Rows
 Datasource.Replace <- function(e, table, rows) {
+  if (e$traceData == TRUE) cat(sprintf("FN - Datasource.Replace(e, %s, rows)\n", table))
+  
   if(!exists("Cache", e))
     stop(sprintf("Datasource not connected"))
   
@@ -242,7 +224,7 @@ if (testing) {
   
   cat("\n** Closing datasource\n")
   Datasource.Close(E)
-  cat("Env: "); print(ls(E))
+  cat("Env: "); 
 
   cat("\n** New datasource\n")
   Datasource.New(E)
@@ -252,12 +234,11 @@ if (testing) {
   cat("Env$Cache$Task: "); print(str(E$Cache$Task))
   
   cat("\n*** Adding Tasks\n")
-  data.frame(Name="Mow lawn", 
+  Task(Name="Mow lawn", 
              Description="Only the front lawn",
              Bucket="Home-Maintenance",
              Status="ToDo",
-             Today=FALSE,
-             stringsAsFactors = FALSE) -> T
+             Today=FALSE) -> T
   Datasource.Add(E, "Task", T)
   data.frame(Name=c("Wash dishes", "Wash car"), 
              Description=c("In the dishwasher", "Neighbourhood water fight"),
