@@ -37,7 +37,7 @@ TimeBoxUI <- tagList(
   useShinyjs(),
 
   navbarPage(
-    "Time Box",
+    "Time Box", selected = "Tasks", 
   
     # Panels
 
@@ -50,13 +50,15 @@ TimeBoxUI <- tagList(
       sidebarLayout(
         sidebarPanel(
           textOutput('IdeaStuff'),
+          verbatimTextOutput('Display.IdeaSelected'),
           div(
-            id="New.IdeaFrame",
-            textInput("New.IdeaName", "Name"),
-            textAreaInput("New.IdeaNotes","Notes",
-              rows = 5, 
-              placeholder = "come come elucidate your thoughts"),
-            selectInput("New.IdeaBucket", "Assign to:", choices = NULL)
+            id="Idea.Frame",
+            textInput("Idea.Name", "Name", 
+              placeholder = "A name for your brainwave"),
+            textAreaInput("Idea.Notes","Notes",
+              rows = 10, 
+              placeholder = "Come come elucidate your thoughts"),
+            selectInput("Idea.Bucket", "Assign to:", choices = NULL)
           ),
           actionButton("New.IdeaButton", "Add"),
           actionButton("Update.IdeaButton", "Update"),
@@ -64,7 +66,6 @@ TimeBoxUI <- tagList(
           actionButton("Reset.IdeaButton", "Reset")
         ),
         mainPanel(
-#          verbatimTextOutput('Display.IdeaSelected'),
           dataTableOutput('Display.Idea')
         )
       )
@@ -78,19 +79,22 @@ TimeBoxUI <- tagList(
       sidebarLayout(
         sidebarPanel(
           textOutput('BucketStuff'),
+          verbatimTextOutput('Display.BucketSelected'),
           div(
-            id="New.BucketFrame",
-            textInput("New.BucketName", "Name"),
-            textAreaInput("New.BucketDescription","Description",
-              rows = 5, 
-              placeholder = "come come elucidate your thoughts")
+            id="Bucket.Frame",
+            textInput("Bucket.Name", "Name", placeholder = "Group name"),
+            textAreaInput("Bucket.Description","Description",
+              rows = 2, 
+              placeholder = "Short description"),
+	    textInput("Bucket.ChargeTo", "Project", 
+              placeholder = "Project code for timesheeting")
           ),
           actionButton("New.BucketButton", "Add"),
+          actionButton("Update.BucketButton", "Update"),
           actionButton("Delete.BucketButton", "Delete"),
           actionButton("Reset.BucketButton", "Reset")
         ),
         mainPanel(
-          verbatimTextOutput('Display.BucketSelected'),
           dataTableOutput('Display.Bucket')
         )
       )
@@ -104,19 +108,23 @@ TimeBoxUI <- tagList(
       sidebarLayout(
         sidebarPanel(
           textOutput('TaskStuff'),
+          verbatimTextOutput('Display.TaskSelected'),
           div(
-            id="New.TaskFrame",
-            textInput("New.TaskName", "Name"),
-            textAreaInput("New.TaskDescription","Description",
-              rows = 5, 
-              placeholder = "come come elucidate your thoughts")
+            id="Task.Frame",
+            textInput("Task.Name", "Name", placeholder = "Task name"),
+            textAreaInput("Task.Description","Description",
+              rows = 10, 
+              placeholder = "Description and sub-tasks"),
+            selectInput("Task.Bucket", "Assign to:", choices = NULL),
+	    textInput("Task.Status", "Status")
+	    # Task.Today
           ),
           actionButton("New.TaskButton", "Add"),
+          actionButton("Update.TaskButton", "Update"),
           actionButton("Delete.TaskButton", "Delete"),
           actionButton("Reset.TaskButton", "Reset")
 	),
         mainPanel(
-          verbatimTextOutput('Display.TaskSelected'),
           dataTableOutput('Display.Task')
         )
       )
@@ -128,9 +136,11 @@ TimeBoxUI <- tagList(
     tabPanel(
       "Timekeeping", 
       sidebarLayout(
-        sidebarPanel(textOutput('WorkStuff')),
+        sidebarPanel(
+          textOutput('WorkStuff'),
+          verbatimTextOutput('Display.WorkSelected')
+        ),
         mainPanel(
-          verbatimTextOutput('Display.WorkSelected'),
           dataTableOutput('Display.Work')
         )
       )
@@ -141,7 +151,7 @@ TimeBoxUI <- tagList(
     # ===================================================================
     tabPanel(
       "...",
-      actionButton("Save.all", "Save"),
+      # actionButton("Save.all", "Save"),
       actionButton("Archive.all", "Archive")
     )
   )
@@ -156,7 +166,7 @@ TimeBoxServer <- function(input, output, session) {
   
   Configuration.Init() -> Env
   FALSE -> Env$traceData
-  TRUE -> Env$traceUI
+  FALSE -> Env$traceUI
   
   Datasource.Init(Env)
 
@@ -179,9 +189,9 @@ TimeBoxServer <- function(input, output, session) {
     if (Env$traceUI) cat("XXX - New.Idea - extraction\n")
     
     Idea(
-      Name=input$New.IdeaName, 
-      Notes=input$New.IdeaNotes,
-      Bucket=input$New.IdeaBucket
+      Name=input$Idea.Name, 
+      Notes=input$Idea.Notes,
+      Bucket=input$Idea.Bucket
     )
   })
 
@@ -189,17 +199,16 @@ TimeBoxServer <- function(input, output, session) {
     input$Display.Idea_rows_selected
   })
 
-  Reset.Idea <- function() {
+  Reset.Idea <- function(bucket="-") {
     # Initialise the bucket list
-    updateSelectInput(session, "New.IdeaBucket", 
+    updateSelectInput(session, "Idea.Bucket", 
       choices = {
-        if (Env$traceUI) cat("XXX - Initialising the bucket list\n")
         c("-", sort(unique(Datasource.Read(Env, "Bucket")$Name)))
       },
       selected = "-"
     )
     
-    reset("New.IdeaFrame")
+    reset("Idea.Frame")
   }
 
   # ------------------------------------------------
@@ -214,6 +223,24 @@ TimeBoxServer <- function(input, output, session) {
 
   observeEvent(input$Update.IdeaButton, {
     if (Env$traceUI) cat(sprintf("XXX - Update.IdeaButton - %d\n", input$Update.IdeaButton))
+
+    selected <- Selected.Idea()
+
+    if (length(selected) == 1) {
+      Datasource.Read(Env, "Idea") -> rows
+      
+      input$Idea.Name -> rows[selected, "Name"]
+      input$Idea.Notes -> rows[selected, "Notes"]
+      input$Idea.Bucket -> rows[selected, "Bucket"]
+
+      if (Env$traceUI) {
+        cat(sprintf("XXX - Updating row %d with\n", selected))
+        print(rows[selected,])
+      }
+
+      Datasource.Replace(Env, "Idea", rows)
+      Reset.Idea()
+    }
   })
   
   observeEvent(input$Delete.IdeaButton, {
@@ -222,6 +249,7 @@ TimeBoxServer <- function(input, output, session) {
     selected <- Selected.Idea()
 
     if (length(selected) > 0) {
+      # better to read this directly from the table.
       Datasource.Read(Env, "Idea") -> rows
       
       if (Env$traceUI) {
@@ -240,6 +268,28 @@ TimeBoxServer <- function(input, output, session) {
     if (Env$traceUI) cat(sprintf("XXX - Reset.IdeaButton - %d\n", input$Reset.IdeaButton))
     Reset.Idea()
   })
+
+  observeEvent(input$Display.Idea_rows_selected, {
+    selected <- Selected.Idea()
+    Datasource.Read(Env, "Idea") -> rows
+
+    if (Env$traceUI) {
+      cat(sprintf("XXX - Display.Idea_rows_selected (%d): ", length(selected)))
+      if (length(selected) > 0) {
+        cat(selected, sep = ", ")
+      }
+      cat("\n")
+
+      print(rows[selected,])
+    }
+
+    # Populate the entry fields for update
+    if (length(selected) == 1) {
+      updateTextInput(session, "Idea.Name", value = rows[selected, "Name"])
+      updateTextAreaInput(session, "Idea.Notes", value = rows[selected, "Notes"])
+      updateSelectInput(session, "Idea.Bucket", selected = rows[selected, "Bucket"])
+    } else Reset.Idea()
+  })
   
   # ------------------------------------------------
   # Reactive updates
@@ -248,18 +298,20 @@ TimeBoxServer <- function(input, output, session) {
   output$Display.Idea <- DT::renderDataTable({
     input$New.IdeaButton
     input$Delete.IdeaButton
+    input$Update.IdeaButton
     input$Reset.IdeaButton
     Reset.Idea()
     format.Idea(Datasource.Read(Env, "Idea"))
-  }, server = TRUE)
+  }, server = TRUE, filter = "top")
 
   output$Display.IdeaSelected <- renderPrint({
     selected <- Selected.Idea()
     if (length(selected) > 0) {
       cat("Selected rows: ")
       cat(selected, sep = ", ")
-    }
+    } else Reset.Idea()
   })
+
 
   # ===================================================================
   # Buckets
@@ -271,9 +323,9 @@ TimeBoxServer <- function(input, output, session) {
     if (Env$traceUI) cat("XXX - New.Bucket - extraction\n")
     
     Bucket(
-      Name=input$New.BucketName, 
-      Description=input$New.BucketDescription
-      # ChargeTo
+      Name=input$Bucket.Name, 
+      Description=input$Bucket.Description,
+      ChargeTo=input$Bucket.ChargeTo
     )
   })
 
@@ -281,17 +333,8 @@ TimeBoxServer <- function(input, output, session) {
     input$Display.Bucket_rows_selected
   })
 
-  Reset.Bucket <- function() {
-    # Initialise the bucket list
-    updateSelectInput(session, "New.BucketBucket", 
-      choices = {
-        if (Env$traceUI) cat("XXX - Initialising the bucket list\n")
-        c("-", sort(unique(Datasource.Read(Env, "Bucket")$Name)))
-      },
-      selected = "-"
-    )
-    
-    reset("New.BucketFrame")
+  Reset.Bucket <- function(bucket="-") {
+    reset("Bucket.Frame")
   }
 
   # ------------------------------------------------
@@ -308,6 +351,24 @@ TimeBoxServer <- function(input, output, session) {
 
   observeEvent(input$Update.BucketButton, {
     if (Env$traceUI) cat(sprintf("XXX - Update.BucketButton - %d\n", input$Update.BucketButton))
+
+    selected <- Selected.Bucket()
+
+    if (length(selected) == 1) {
+      Datasource.Read(Env, "Bucket") -> rows
+      
+      input$Bucket.Name -> rows[selected, "Name"]
+      input$Bucket.Description -> rows[selected, "Description"]
+      input$Bucket.ChargeTo -> rows[selected, "ChargeTo"]
+
+      if (Env$traceUI) {
+        cat(sprintf("XXX - Updating row %d with\n", selected))
+        print(rows[selected,])
+      }
+
+      Datasource.Replace(Env, "Bucket", rows)
+      Reset.Bucket()
+    }
   })
   
   observeEvent(input$Delete.BucketButton, {
@@ -316,7 +377,14 @@ TimeBoxServer <- function(input, output, session) {
     selected <- Selected.Bucket()
 
     if (length(selected) > 0) {
+      # better to read this directly from the table.
       Datasource.Read(Env, "Bucket") -> rows
+      
+      if (Env$traceUI) {
+        cat(sprintf("XXX - Removing %d rows\n", length(selected)))
+        print(rows[selected,])
+      }
+
       rows[-selected,] -> rows
       Datasource.Replace(Env, "Bucket", rows)
     }
@@ -330,6 +398,28 @@ TimeBoxServer <- function(input, output, session) {
     if (Env$traceUI) cat(sprintf("XXX - Reset.BucketButton - %d\n", input$Reset.BucketButton))
     Reset.Bucket()
   })
+
+  observeEvent(input$Display.Bucket_rows_selected, {
+    selected <- Selected.Bucket()
+    Datasource.Read(Env, "Bucket") -> rows
+
+    if (Env$traceUI) {
+      cat(sprintf("XXX - Display.Bucket_rows_selected (%d): ", length(selected)))
+      if (length(selected) > 0) {
+        cat(selected, sep = ", ")
+      }
+      cat("\n")
+
+      print(rows[selected,])
+    }
+
+    # Populate the entry fields for update
+    if (length(selected) == 1) {
+      updateTextInput(session, "Bucket.Name", value = rows[selected, "Name"])
+      updateTextAreaInput(session, "Bucket.Description", value = rows[selected, "Description"])
+      updateTextInput(session, "Bucket.ChargeTo", value = rows[selected, "ChargeTo"])
+    } else Reset.Bucket()
+  })
   
   # ------------------------------------------------
   # Reactive updates
@@ -338,18 +428,20 @@ TimeBoxServer <- function(input, output, session) {
   output$Display.Bucket <- DT::renderDataTable({
     input$New.BucketButton
     input$Delete.BucketButton
+    input$Update.BucketButton
     input$Reset.BucketButton
     Reset.Bucket()
     format.Bucket(Datasource.Read(Env, "Bucket"))
-  }, server = TRUE)
+  }, server = TRUE, filter = "top")
 
   output$Display.BucketSelected <- renderPrint({
     selected <- Selected.Bucket()
     if (length(selected) > 0) {
       cat("Selected rows: ")
       cat(selected, sep = ", ")
-    }
+    } else Reset.Bucket()
   })
+
 
   # ===================================================================
   # Tasks
@@ -361,29 +453,28 @@ TimeBoxServer <- function(input, output, session) {
     if (Env$traceUI) cat("XXX - New.Task - extraction\n")
     
     Task(
-      Name=input$New.TaskName, 
-      Description=input$New.TaskDescription, 
-      Bucket=input$New.TaskBucket
-      # Status
-      # Today
-    ) 
+      Name=input$Task.Name, 
+      Description=input$Task.Description,
+      Bucket=input$Task.Bucket,
+      Status=input$Task.Status
+      # Task.Today
+    )
   })
 
   Selected.Task <- reactive({
     input$Display.Task_rows_selected
   })
 
-  Reset.Task <- function() {
+  Reset.Task <- function(bucket="-") {
     # Initialise the bucket list
-    updateSelectInput(session, "New.TaskBucket", 
+    updateSelectInput(session, "Task.Bucket", 
       choices = {
-        if (Env$traceUI) cat("XXX - Initialising the bucket list\n")
         c("-", sort(unique(Datasource.Read(Env, "Bucket")$Name)))
       },
       selected = "-"
     )
     
-    reset("New.TaskFrame")
+    reset("Task.Frame")
   }
 
   # ------------------------------------------------
@@ -392,12 +483,35 @@ TimeBoxServer <- function(input, output, session) {
   #
   observeEvent(input$New.TaskButton, {
     if (Env$traceUI) cat(sprintf("XXX - New.TaskButton - %d\n", input$New.TaskButton))
+    print(New.Task())
+    print(Datasource.Read(Env, "Task"))
+
     Datasource.Add(Env, "Task", New.Task())
     Reset.Task()
   })
 
   observeEvent(input$Update.TaskButton, {
     if (Env$traceUI) cat(sprintf("XXX - Update.TaskButton - %d\n", input$Update.TaskButton))
+
+    selected <- Selected.Task()
+
+    if (length(selected) == 1) {
+      Datasource.Read(Env, "Task") -> rows
+      
+      input$Task.Name -> rows[selected, "Name"]
+      input$Task.Description -> rows[selected, "Description"]
+      input$Task.Bucket -> rows[selected, "Bucket"]
+      input$Task.Status -> rows[selected, "Status"]
+      # Task.Today
+
+      if (Env$traceUI) {
+        cat(sprintf("XXX - Updating row %d with\n", selected))
+        print(rows[selected,])
+      }
+
+      Datasource.Replace(Env, "Task", rows)
+      Reset.Task()
+    }
   })
   
   observeEvent(input$Delete.TaskButton, {
@@ -406,7 +520,14 @@ TimeBoxServer <- function(input, output, session) {
     selected <- Selected.Task()
 
     if (length(selected) > 0) {
+      # better to read this directly from the table.
       Datasource.Read(Env, "Task") -> rows
+      
+      if (Env$traceUI) {
+        cat(sprintf("XXX - Removing %d rows\n", length(selected)))
+        print(rows[selected,])
+      }
+
       rows[-selected,] -> rows
       Datasource.Replace(Env, "Task", rows)
     }
@@ -418,6 +539,29 @@ TimeBoxServer <- function(input, output, session) {
     if (Env$traceUI) cat(sprintf("XXX - Reset.TaskButton - %d\n", input$Reset.TaskButton))
     Reset.Task()
   })
+
+  observeEvent(input$Display.Task_rows_selected, {
+    selected <- Selected.Task()
+    Datasource.Read(Env, "Task") -> rows
+
+    if (Env$traceUI) {
+      cat(sprintf("XXX - Display.Task_rows_selected (%d): ", length(selected)))
+      if (length(selected) > 0) {
+        cat(selected, sep = ", ")
+      }
+      cat("\n")
+
+      print(rows[selected,])
+    }
+
+    # Populate the entry fields for update
+    if (length(selected) == 1) {
+      updateTextInput(session, "Task.Name", value = rows[selected, "Name"])
+      updateTextAreaInput(session, "Task.Description", value = rows[selected, "Description"])
+      updateSelectInput(session, "Task.Bucket", selected = rows[selected, "Bucket"])
+      updateTextInput(session, "Task.Status", value = rows[selected, "Status"])
+    } else Reset.Task()
+  })
   
   # ------------------------------------------------
   # Reactive updates
@@ -426,18 +570,20 @@ TimeBoxServer <- function(input, output, session) {
   output$Display.Task <- DT::renderDataTable({
     input$New.TaskButton
     input$Delete.TaskButton
+    input$Update.TaskButton
     input$Reset.TaskButton
     Reset.Task()
     format.Task(Datasource.Read(Env, "Task"))
-  }, server = TRUE)
+  }, server = TRUE, filter = "top")
 
   output$Display.TaskSelected <- renderPrint({
     selected <- Selected.Task()
     if (length(selected) > 0) {
       cat("Selected rows: ")
       cat(selected, sep = ", ")
-    }
+    } else Reset.Task()
   })
+
 
   # ===================================================================
   # Work
@@ -445,65 +591,9 @@ TimeBoxServer <- function(input, output, session) {
   # Helpers
   # ------------------------------------------------
   #
-  New.Work <- reactive({
-    if (Env$traceUI) cat("XXX - New.Work - extraction\n")
-    
-    Work(
-      Date=input$New.WorkName, 
-      Duration=input$New.WorkDescription, 
-      Task=input$New.WorkBucket
-      # ChargeTo
-    )
-  })
 
   Selected.Work <- reactive({
     input$Display.Work_rows_selected
-  })
-
-  Reset.Work <- function() {
-    # Initialise the bucket list
-    updateSelectInput(session, "New.WorkBucket", 
-      choices = {
-        if (Env$traceUI) cat("XXX - Initialising the bucket list\n")
-        c("-", sort(unique(Datasource.Read(Env, "Bucket")$Name)))
-      },
-      selected = "-"
-    )
-    
-    reset("New.WorkFrame")
-  }
-
-  # ------------------------------------------------
-  # Events
-  # ------------------------------------------------
-  #
-  observeEvent(input$New.WorkButton, {
-    if (Env$traceUI) cat(sprintf("XXX - New.WorkButton - %d\n", input$New.WorkButton))
-    Datasource.Add(Env, "Work", New.Work())
-    Reset.Work()
-  })
-
-  observeEvent(input$Update.WorkButton, {
-    if (Env$traceUI) cat(sprintf("XXX - Update.WorkButton - %d\n", input$Update.WorkButton))
-  })
-  
-  observeEvent(input$Delete.WorkButton, {
-    if (Env$traceUI) cat(sprintf("XXX - Delete.WorkButton - %d\n", input$Delete.WorkButton))
-    
-    selected <- Selected.Work()
-
-    if (length(selected) > 0) {
-      Datasource.Read(Env, "Work") -> rows
-      rows[-selected,] -> rows
-      Datasource.Replace(Env, "Work", rows)
-    }
-
-    Reset.Work()
-  })
-  
-  observeEvent(input$Reset.WorkButton, {
-    if (Env$traceUI) cat(sprintf("XXX - Reset.WorkButton - %d\n", input$Reset.WorkButton))
-    Reset.Work()
   })
   
   # ------------------------------------------------
@@ -511,20 +601,18 @@ TimeBoxServer <- function(input, output, session) {
   # ------------------------------------------------
   #
   output$Display.Work <- DT::renderDataTable({
-    input$New.WorkButton
-    input$Delete.WorkButton
-    input$Reset.WorkButton
-    Reset.Work()
+    # Reset.Work()
     format.Work(Datasource.Read(Env, "Work"))
-  }, server = TRUE)
+  }, server = TRUE, filter = "top")
 
   output$Display.WorkSelected <- renderPrint({
     selected <- Selected.Work()
     if (length(selected) > 0) {
       cat("Selected rows: ")
       cat(selected, sep = ", ")
-    }
+    } # else Reset.Work()
   })
+
 
   # ===================================================================
   # Other stuff

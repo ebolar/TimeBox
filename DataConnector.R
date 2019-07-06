@@ -63,7 +63,6 @@ Datasource.New <- function(e) {
 }
 
 # Datasource.Init x Environment -> Environment
-# - Add an identification tag - XXX is default
 Datasource.Init <- function(e, ID=e$ID) {
   if (e$traceData == TRUE) cat("FN - Datasource.Init(e)\n")
   
@@ -74,24 +73,81 @@ Datasource.Init <- function(e, ID=e$ID) {
     tryCatch(
       {
         read.csv(file=paste(ID,"Idea.csv", sep="-"), stringsAsFactors = FALSE) -> e$Cache$Idea
+      },
+      error = function(e) {
+        Idea() -> e$Cache$Idea
+        if (grepl("no lines available in input", e$message))
+          warning(sprintf("Datasource.Init:\n    Empty file: %s\n", e))
+        warning(sprintf("Datasource.Init:\n    %s\n", e))
+      },
+      warning = function(w) {
+        Idea() -> e$Cache$Idea
+        if (grepl("No such file or directory", w$message))
+          warning(sprintf("Datasource.Init:\n    %s\n", w))
+        else {
+          # all others
+          warning(sprintf("Datasource.Init:\n    %s", w))
+        }
+      }
+    )
+    tryCatch(
+      {
         read.csv(file=paste(ID,"Bucket.csv", sep="-"), stringsAsFactors = FALSE) -> e$Cache$Bucket
+      },
+      error = function(e) {
+        Bucket() -> e$Cache$Bucket
+        if (grepl("no lines available in input", e$message))
+          warning(sprintf("Datasource.Init:\n    Empty file: %s\n", e))
+        warning(sprintf("Datasource.Init:\n    %s\n", e))
+      },
+      warning = function(w) {
+        Bucket() -> e$Cache$Bucket
+        if (grepl("No such file or directory", w$message))
+          warning(sprintf("Datasource.Init:\n    %s\n", w))
+        else {
+          # all others
+          warning(sprintf("Datasource.Init:\n    %s", w))
+        }
+      }
+    )
+    tryCatch(
+      {
         read.csv(file=paste(ID,"Task.csv", sep="-"), stringsAsFactors = FALSE) -> e$Cache$Task
+      },
+      error = function(e) {
+        Task() -> e$Cache$Task
+        if (grepl("no lines available in input", e$message))
+          warning(sprintf("Datasource.Init:\n    Empty file: %s\n", e))
+        warning(sprintf("Datasource.Init:\n    %s\n", e))
+      },
+      warning = function(w) {
+        Task() -> e$Cache$Task
+        if (grepl("No such file or directory", w$message))
+          warning(sprintf("Datasource.Init:\n    %s\n", w))
+        else {
+          # all others
+          warning(sprintf("Datasource.Init:\n    %s", w))
+        }
+      }
+    )
+    tryCatch(
+      {
         read.csv(file=paste(ID,"Work.csv", sep="-"), stringsAsFactors = FALSE) -> e$Cache$Work
       },
       error = function(e) {
+        Work() -> e$Cache$Work
         if (grepl("no lines available in input", e$message))
-          stop(sprintf("Datasource.Init: Empty file: %s\n"), e)
-          # return(EmptyTasks())
-          # Ideally would return an empty dataset for each file - need to wrap each read
-        stop(sprintf("Datasource.Init: %s\n"), e)
+          warning(sprintf("Datasource.Init:\n    Empty file: %s\n", e))
+        warning(sprintf("Datasource.Init:\n    %s\n", e))
       },
       warning = function(w) {
+        Work() -> e$Cache$Work
         if (grepl("No such file or directory", w$message))
-          warning(sprintf("Datasource.Init: %s\n", w))
+          warning(sprintf("Datasource.Init:\n    %s\n", w))
           # return(EmptyTasks())
         else {
           # all others
-          warning(sprintf("Datasource.Init: %s", w))
+          warning(sprintf("Datasource.Init:\n    %s", w))
           # return(EmptyTasks())
         }
       }
