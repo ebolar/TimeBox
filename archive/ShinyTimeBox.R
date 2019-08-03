@@ -1,6 +1,8 @@
 # ===================================================================
 # Time Box - planner and task tracker
 # ===================================================================
+# V 0.1 - MVP useful application
+# -------------------------------------------------------------------
 # Time management in R for busy people, and a good excuse for me to 
 # learn more about R.
 # 
@@ -12,16 +14,6 @@
 #
 #    http://shiny.rstudio.com/
 #
-# TBD: 
-# - Use Nouns for the UI and Verbs for the Server.
-# - Create add routines for Buckets and Tasks
-# - Create generic routines to create all data types
-#
-# - Add timestamps: Created + Last Modification
-# - Add search criteria for the list
-# - Do I need row names?
-# - When will it make sense to split this into ui.R and server.R?
-# - How quickly can I get my to-do for this tool into the tool?
 
 rm (list = ls())
 
@@ -151,7 +143,7 @@ TimeBoxUI <- tagList(
     # ===================================================================
     tabPanel(
       "...",
-      # actionButton("Save.all", "Save"),
+      actionButton("Save.all", "Save"),
       actionButton("Archive.all", "Archive")
     )
   )
@@ -162,11 +154,12 @@ TimeBoxServer <- function(input, output, session) {
   # Setup 
   # ===================================================================
   #
+  cat("TimeBox V0.1\n")
   cat("XXX-Opening datasoure\n")
   
   Configuration.Init() -> Env
   FALSE -> Env$traceData
-  FALSE -> Env$traceUI
+  TRUE -> Env$traceUI
   
   Datasource.Init(Env)
 
