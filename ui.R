@@ -114,28 +114,16 @@ TimeBoxUI <- tagList(
     # -------------------------------------------------------------------
     tabPanel(
       "Tasks", 
-      sidebarLayout(
-        sidebarPanel(
+      verticalLayout(
           textOutput('TaskStuff'),
-          verbatimTextOutput('Display.TaskSelected'),
-          div(
-            id="Task.Frame",
-            textInput("Task.Name", "Name", placeholder = "Task name"),
-            textAreaInput("Task.Description","Description",
-              rows = 10, 
-              placeholder = "Description and sub-tasks"),
-            selectInput("Task.Bucket", "Assign to:", choices = NULL),
-	    textInput("Task.Status", "Status")
-	    # Task.Today
-          ),
-          actionButton("New.TaskButton", "Add"),
-          actionButton("Update.TaskButton", "Update"),
-          actionButton("Delete.TaskButton", "Delete"),
-          actionButton("Reset.TaskButton", "Reset")
-	),
-        mainPanel(
-          dataTableOutput('Display.Task')
-        )
+          wellPanel(
+            actionButton("New.TaskButton", "Add"),
+            actionButton("Update.TaskButton", "Update"),
+            actionButton("Delete.TaskButton", "Delete")
+  	  ),
+          dataTableOutput('Display.Task'),
+  	  hr(),
+          verbatimTextOutput('Display.TaskSelected')
       )
     ),
 

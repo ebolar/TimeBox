@@ -36,6 +36,5 @@ whoami::username() -> TimeBox.Username
 whoami::fullname() -> TimeBox.Fullname
 whoami::email_address() -> TimeBox.email
 
-set_logging(js_console=FALSE, file=TRUE)
-#set_logging(js_console=FALSE, file=TRUE, Version=TimeBox.Version)
+set_logging(js_console=FALSE, file=FALSE)
 

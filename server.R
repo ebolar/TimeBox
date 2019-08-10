@@ -229,7 +229,6 @@ TimeBoxServer <- function(input, output, session) {
     Datasource.Add(Env, "Bucket", New.Bucket())
     Reset.Idea()
     Reset.Bucket()
-    Reset.Task()
   })
 
   observeEvent(input$Update.BucketButton, {
@@ -274,7 +273,6 @@ TimeBoxServer <- function(input, output, session) {
 
     Reset.Idea()
     Reset.Bucket()
-    Reset.Task()
   })
   
   observeEvent(input$Reset.BucketButton, {
@@ -335,6 +333,8 @@ TimeBoxServer <- function(input, output, session) {
   # Helpers
   # ------------------------------------------------
   #
+  Row.Task <- reactiveVal()
+  
   New.Task <- reactive({
     if (Env$traceUI) log_event("XXX - New.Task - extraction", type="Task")
     
@@ -343,7 +343,6 @@ TimeBoxServer <- function(input, output, session) {
       Description=input$Task.Description,
       Bucket=input$Task.Bucket,
       Status=input$Task.Status
-      # Task.Today
     )
   })
 
@@ -353,16 +352,46 @@ TimeBoxServer <- function(input, output, session) {
     input$Display.Task_rows_selected
   })
 
-  Reset.Task <- function(bucket="-") {
-    # Initialise the bucket list
-    updateSelectInput(session, "Task.Bucket", 
-      choices = {
-        c("-", sort(unique(Datasource.Read(Env, "Bucket")$Name)))
-      },
-      selected = "-"
+  Modal.AddTask <- function(Name=NULL, Description=NULL, Bucket=NULL, Status=NULL, BucketList=NULL) {
+    modalDialog(
+      title = "Add Task",
+      textInput("Task.Name", "Name", placeholder = "Task name", value = Name, width = "100%"),
+      textAreaInput("Task.Description", "Description",
+        rows = 10,
+        placeholder = "Description and sub-tasks",
+        value = Description,
+        resize = "none") %>%
+        # There is a bug in textAreaInput.  width does not work.  Need to patch the CSS directly.
+        shiny::tagAppendAttributes(style = 'width: 100%;'),
+      selectInput("Task.Bucket", "Assign to:", choices = BucketList, selected = Bucket, width = "100%"),
+      textInput("Task.Status", "Status", value = Status, width = "100%"),
+
+      footer = tagList(
+        modalButton("Cancel"),
+        actionButton("Modal.AddTaskButton", "OK")
+      )
     )
-    
-    reset("Task.Frame")
+  }
+
+  Modal.UpdateTask <- function(Name=NULL, Description=NULL, Bucket=NULL, Status=NULL, BucketList=NULL) {
+    modalDialog(
+      title = "Update Task",
+      textInput("Task.Name", "Name", placeholder = "Task name", value = Name, width = "100%"),
+      textAreaInput("Task.Description", "Description",
+        rows = 10,
+        placeholder = "Description and sub-tasks",
+        value = Description,
+        resize = "none") %>%
+        # There is a bug in textAreaInput.  width does not work.  Need to patch the CSS directly.
+        shiny::tagAppendAttributes(style = 'width: 100%;'),
+      selectInput("Task.Bucket", "Assign to:", choices = BucketList, selected = Bucket, width = "100%"),
+      textInput("Task.Status", "Status", value = Status, width = "100%"),
+
+      footer = tagList(
+        modalButton("Cancel"),
+        actionButton("Modal.UpdateTaskButton", "OK")
+      )
+    )
   }
 
   # ------------------------------------------------
@@ -372,11 +401,19 @@ TimeBoxServer <- function(input, output, session) {
   observeEvent(input$New.TaskButton, {
     if (Env$traceUI) log_event(sprintf("XXX - New.TaskButton - %d", input$New.TaskButton), type="Task")
 
-    print(New.Task())
-    print(Datasource.Read(Env, "Task"))
+    showModal(Modal.AddTask(
+      BucketList = c("", sort(unique(Datasource.Read(Env, "Bucket")$Name)))
+    ))
+  })
+
+  observeEvent(input$Modal.AddTaskButton, {
+    if (Env$traceUI) {
+      log_event(sprintf("XXX - Modal.AddTaskButton - %d", input$Modal.TaskButton), type="Task")
+      log_output(print(New.Task()))
+    }
 
     Datasource.Add(Env, "Task", New.Task())
-    Reset.Task()
+    removeModal()
   })
 
   observeEvent(input$Update.TaskButton, {
@@ -386,24 +423,64 @@ TimeBoxServer <- function(input, output, session) {
 
     if (length(selected) == 1) {
       Datasource.Read(Env, "Task") -> rows
-      
-      input$Task.Name -> rows[selected, "Name"]
-      input$Task.Description -> rows[selected, "Description"]
-      input$Task.Bucket -> rows[selected, "Bucket"]
-      input$Task.Status -> rows[selected, "Status"]
-      # Task.Today
+      Row.Task(selected)
 
       if (Env$traceUI) {
-        log_event(sprintf("XXX - Updating row %d with", selected), type="Task")
+        log_event(sprintf("XXX - Updating row %d, source", selected), type="Task")
         log_output(print(rows[selected,]), type="Task")
       }
-
-      Datasource.Replace(Env, "Task", rows)
-      Reset.Task()
+      
+      showModal(Modal.UpdateTask(
+        Name = rows[selected, "Name"],
+        Description = rows[selected, "Description"],
+        Bucket = rows[selected, "Bucket"],
+        Status = rows[selected, "Status"],
+        # How to get the options for the Bucket into the drop down
+        BucketList = c("", sort(unique(Datasource.Read(Env, "Bucket")$Name)))
+      ))
+      
     }
     # else ignore - cannot update what is not selected
   })
   
+  observeEvent(input$Modal.UpdateTaskButton, {
+    selected <- Row.Task()
+    
+    if (Env$traceUI) {
+      log_event(sprintf("XXX - Modal.UpdateTaskButton - %d", input$Modal.TaskButton), type="Task")
+      log_test(length(selected) == 1)
+      log_output(print(selected))
+    
+      Task(
+        Name=input$Task.Name, 
+        Description=input$Task.Description, 
+        Bucket=input$Task.Bucket, 
+        Status=input$Task.Status, 
+        LastUpdate=Sys.time()
+      ) -> Updated.Task
+      
+      log_output(print(Updated.Task))
+    }
+
+    Datasource.Read(Env, "Task") -> rows
+
+    # Extract and update
+    input$Task.Name -> rows[selected, "Name"]
+    input$Task.Description -> rows[selected, "Description"]
+    input$Task.Bucket -> rows[selected, "Bucket"]
+    input$Task.Status -> rows[selected, "Status"]
+    format(Sys.time(), "%Y-%m-%d %H:%M:%S") -> rows[selected, "LastUpdate"]
+
+    if (Env$traceUI) {
+      log_event(sprintf("XXX - Updating row %d with", selected), type="Task")
+      log_output(print(rows[selected,]), type="Task")
+    }
+
+    Datasource.Replace(Env, "Task", rows)
+
+    removeModal()
+  })
+
   observeEvent(input$Delete.TaskButton, {
     if (Env$traceUI) log_event(sprintf("XXX - Delete.TaskButton - %d", input$Delete.TaskButton), type="Task")
     
@@ -421,14 +498,14 @@ TimeBoxServer <- function(input, output, session) {
       rows[-selected,] -> rows
       Datasource.Replace(Env, "Task", rows)
     }
-
-    Reset.Task()
   })
   
-  observeEvent(input$Reset.TaskButton, {
-    if (Env$traceUI) log_event(sprintf("XXX - Reset.TaskButton - %d", input$Reset.TaskButton), type="Task")
+  observeEvent(input$Modal.TaskButton, {
+    if (Env$traceUI) log_event(sprintf("XXX - Modal.TaskButton - %d", input$Modal.TaskButton), type="Task")
 
-    Reset.Task()
+    showModal(Modal.AddTask(
+      Bucket = c("-", sort(unique(Datasource.Read(Env, "Bucket")$Name)))
+    ))
   })
 
   observeEvent(input$Display.Task_rows_selected, {
@@ -445,13 +522,6 @@ TimeBoxServer <- function(input, output, session) {
       log_output(rows[selected,], type="Task")
     }
 
-    # Populate the entry fields for update
-    if (length(selected) == 1) {
-      updateTextInput(session, "Task.Name", value = rows[selected, "Name"])
-      updateTextAreaInput(session, "Task.Description", value = rows[selected, "Description"])
-      updateSelectInput(session, "Task.Bucket", selected = rows[selected, "Bucket"])
-      updateTextInput(session, "Task.Status", value = rows[selected, "Status"])
-    } else Reset.Task()
   })
   
   # ------------------------------------------------
@@ -464,8 +534,9 @@ TimeBoxServer <- function(input, output, session) {
     input$New.TaskButton
     input$Delete.TaskButton
     input$Update.TaskButton
-    input$Reset.TaskButton
-    Reset.Task()
+    input$Modal.AddTaskButton
+    input$Modal.UpdateTaskButton
+
     format.Task(Datasource.Read(Env, "Task"))
   }, server = TRUE, filter = "top")
 
@@ -476,9 +547,8 @@ TimeBoxServer <- function(input, output, session) {
     if (length(selected) > 0) {
       cat("Selected rows: ")
       cat(selected, sep = ", ")
-    } else Reset.Task()
+    }
   })
-
 
   # ===================================================================
   # Work
