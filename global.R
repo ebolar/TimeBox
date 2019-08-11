@@ -27,7 +27,7 @@ library(shinyEventLogger)
 library(DT)
 
 source("TimeBoxData.R")
-source("HelperFunctions.R")
+# source("HelperFunctions.R")
 
 "V0.2" -> TimeBox.Version
 

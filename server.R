@@ -363,6 +363,7 @@ TimeBoxServer <- function(input, output, session) {
         resize = "none") %>%
         # There is a bug in textAreaInput.  width does not work.  Need to patch the CSS directly.
         shiny::tagAppendAttributes(style = 'width: 100%;'),
+        # This might also work for setting the HTML5 tagindex for fields
       selectInput("Task.Bucket", "Assign to:", choices = BucketList, selected = Bucket, width = "100%"),
       textInput("Task.Status", "Status", value = Status, width = "100%"),
 
