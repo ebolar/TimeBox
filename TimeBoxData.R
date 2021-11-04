@@ -128,31 +128,106 @@ Work <- function(Date=integer(), Duration=integer(), Task=character(), ChargeTo=
   )
 }
 
-format.Idea <- function(idea=Idea()) {
+format.Idea <- function(idea=Idea(), as = "DT") {
   # - Name
   # - Notes
   # + Bucket
   data.frame(Name=idea$Name, Notes=idea$Notes, Bucket=idea$Bucket) 
 }
 
-format.Bucket <- function(bucket=Bucket()) {
+format.Bucket <- function(bucket=Bucket(), as = "DT") {
   # - Name = Bucket-Project-ScopeItem-etc.  Only make this as deep as necessary to capture uniqueness.
   # - Description
   # - ChargeTo
   data.frame(Name=bucket$Name, Description=bucket$Description, ChargeTo=bucket$ChargeTo)
 }
 
-format.Task <- function(task=Task()) {
+format.Task <- function(task=Task(), bucket=Bucket(), as = "DT") {
   # - Name = task-subtask-subtask-
   # - Description
   # + Bucket
   # - Status
-  data.frame(Name=task$Name, Description=task$Description, Bucket=task$Bucket, Status=task$Status)
+  
+  switch(as, 
+    "DT" = {
+      # [unsorted]
+      # Task - Description - Bucket - Status
+      data.frame(Name=task$Name, Description=task$Description, Bucket=task$Bucket, Status=task$Status, stringsAsFactors = FALSE)
+    },
+    "print" = {
+      # Bucket - Project
+      # [for now]
+      #   Task - Who - Status
+      #        - Description
+      # [maybe later]
+      #   Task - Description - Who - Status
+      #        - Description - Who - Status [Today]
+      #        - Description - Who - Status
+
+      print(paste("Project summary:", Sys.time()))
+      print("=====================================")
+      for (x in unique(task$Bucket)) {
+        print(sprintf("%s [ChargeTo:%s]", x, bucket[bucket$Name == x, "ChargeTo"]))
+        
+        task[task$Bucket == x, ] -> t
+
+	for (y in order(t$Status, t$Name)) {
+	  print(sprintf("  %s [%s]", t$Name[y], t$Status[y]))
+	  for (z in strsplit(t$Description[y], "\n"))
+	    print(sprintf("    %s", z))
+        }
+      }
+    },
+    "xml" = {
+      # [Today]
+      cat("XML\n")
+      for (x in unique(task$Bucket)) {
+        print(sprintf("<Bucket ChargeTo='%s'>%s", bucket[bucket$Name == x, "ChargeTo"], x))
+        
+        task[task$Bucket == x, ] -> t
+
+	for (y in order(t$Status, t$Name)) {
+	  print(sprintf("  %s [%s]", t$Name[y], t$Status[y]))
+	  for (z in strsplit(t$Description[y], "\n"))
+	    print(sprintf("    %s", z))
+        }
+      }
+    },
+    "Markdown" = {
+      # and/or any other pretty formatted list
+      # Bucket - Project
+      #   Task - Description - Status
+      #        - Description - Status [Today]
+      #        - Description - Status
+      cat("Markdown\n")
+    },
+    "csv" = {
+      # [Today]
+      # Bucket - Task - Description - Status.
+      cat("CSV extract\n")
+    },
+    "Kanban" = {
+      # [Today]
+      cat("Kanban Board\n")
+    },
+    "Today" = {
+      # [Today]
+      # Bucket - Task - Description - Status.
+      # [then the rest]
+      # Bucket - Project
+      #   Task - Description - Status
+      #        - Description - Status
+      cat("ToDo list for today\n")
+    }
+
+  )
+
 }
 
-format.Work <- function(work=Work()) {
+format.Work <- function(work=Work(), as = "DT") {
   work
 }
+
 
 # Testing
 # -------------------------------------------------------------------
